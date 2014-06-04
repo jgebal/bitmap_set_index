@@ -2,6 +2,7 @@ ALTER SESSION SET PLSQL_CODE_TYPE=NATIVE;
 /
 ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL=3;
 /
+
 CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
 
   C_MAX_BITS       CONSTANT NUMBER := POWER(C_INDEX_LENGTH,C_INDEX_DEPTH);
@@ -41,9 +42,9 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
       FOR lvl IN 1 .. C_INDEX_LENGTH LOOP
         --setup bitmap array for all levels
         bit_map.extend;
-        bit_map( lvl ) := bmap_node_list(0);
+        bit_map( lvl ) := bmap_node_list(NULL);
         IF lvl = 1 THEN
-          --set bits on the lowes level
+          --set bits on the lowest level
           FOR idx IN p_bit_no_set.FIRST .. p_bit_no_set.LAST LOOP
 --            IF p_bit_no_set(idx) > C_MAX_BITS THEN
 --              RAISE_APPLICATION_ERROR(-20000, 'Index size overflow');
