@@ -10,7 +10,7 @@ SELECT rownum bit_no,
        MOD(ceil((rownum)/31/31/31)-1,31) level_3_bit_no,
        ceil((rownum)/31/31/31/31) level_4_bit_no
   from dual
-connect by level <1000);
+connect by level < 1000);
 
 select * from (
 SELECT rownum bit_no,
