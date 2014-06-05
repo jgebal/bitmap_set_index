@@ -4,8 +4,8 @@ default:
   username: usr
   password: usr
   database: xe
-  host: localhost
-  port: 1521
+#  host: localhost
+#  port: 1521
 
 # Add other connection if needed.
 # You can access them with plsql(:other) where :other is connection name specified below.

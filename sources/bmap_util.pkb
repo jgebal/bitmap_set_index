@@ -19,7 +19,6 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
     bit_no        SIMPLE_INTEGER := 0;
     bit_map_no    SIMPLE_INTEGER := 0;
     max_bit_no    NUMBER;
---    node          NUMBER;
     first_node    NUMBER;
     last_node     NUMBER;
     E_SUBSCRIPT_BEYOND_COUNT EXCEPTION;
@@ -42,10 +41,10 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
         RETURN bit_map;
       END IF;
 
-      FOR lvl IN 1 .. C_INDEX_LENGTH LOOP
+      FOR lvl IN 1 .. C_INDEX_DEPTH LOOP
         --setup bitmap array for all levels
         bit_map.extend;
-        bit_map( lvl ) := bmap_node_list(NULL);
+        bit_map( lvl ) := bmap_node_list(0);
         IF lvl = 1 THEN
           --set bits on the lowest level
           FOR idx IN p_bit_no_set.FIRST .. p_bit_no_set.LAST LOOP
@@ -61,24 +60,6 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
                 bit_map(lvl).EXTEND(bit_map_no-bit_map(lvl).LAST);
                 bit_map(lvl)(bit_map_no) := POWER(2,bit_no);
             END;
---            IF NOT bit_map(lvl).EXISTS(bit_map_no) THEN
---              bit_map(lvl).EXTEND(bit_map_no-bit_map(lvl).LAST);
---              bit_map(lvl)(bit_map_no) := POWER(2,bit_no);
---            ELSE
-----              bit_map(lvl)(bit_map_no) := BITOR( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
-----              bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no) - BITAND( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
---              --assuming that the list is distinct
---              bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no);
---            END IF;
---            IF NOT bit_map(lvl).EXISTS(bit_map_no) THEN
---              bit_map(lvl).EXTEND(bit_map_no-bit_map(lvl).LAST);
---              bit_map(lvl)(bit_map_no) := POWER(2,bit_no);
---            ELSE
-----              bit_map(lvl)(bit_map_no) := BITOR( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
-----              bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no) - BITAND( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
---              --assuming that the list is distinct
---              bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no);
---            END IF;
           END LOOP;
         ELSE
           first_node := CEIL( bit_map(lvl-1).FIRST /31);
@@ -94,26 +75,10 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
               bit_map(lvl).EXTEND(bit_map_no-bit_map(lvl).LAST);
               bit_map(lvl)(bit_map_no) := POWER(2,bit_no);
             ELSE
---              bit_map(lvl)(bit_map_no) := BITOR( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
+              bit_map(lvl)(bit_map_no) := bitor( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
               bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no) - BITAND( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
             END IF;
-          END LOOP;--          node := bit_map(lvl-1).FIRST;
---          WHILE node IS NOT NULL LOOP
---            IF bit_map(lvl-1)(node) IS NULL THEN
---              node := bit_map(lvl-1).NEXT(node);
---              CONTINUE;
---            END IF;
---            bit_no :=      MOD( node - 1, C_INDEX_LENGTH );
---            bit_map_no := CEIL( node    / C_INDEX_LENGTH );
---            IF NOT bit_map(lvl).exists(bit_map_no) THEN
---              bit_map(lvl).EXTEND(bit_map_no-bit_map(lvl).LAST);
---              bit_map(lvl)(bit_map_no) := POWER(2,bit_no);
---            ELSE
-----              bit_map(lvl)(bit_map_no) := BITOR( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
---              bit_map(lvl)(bit_map_no) := bit_map(lvl)(bit_map_no) + POWER(2,bit_no) - BITAND( bit_map(lvl)(bit_map_no), POWER(2,bit_no) );
---            END IF;
---            node := bit_map(lvl-1).NEXT(node);
---          END LOOP;
+          END LOOP;
         END IF;
       END LOOP;
     END IF;
@@ -152,7 +117,7 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
         RETURN bit_map;
       END IF;
 
-      FOR lvl IN 1 .. C_INDEX_LENGTH LOOP
+      FOR lvl IN 1 .. C_INDEX_DEPTH LOOP
         --setup bitmap array for all levels
         bit_map.extend;
         bit_map( lvl ) := bmap_node_list(0);
