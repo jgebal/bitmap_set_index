@@ -6,7 +6,12 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
   PROCEDURE init(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST) IS
   BEGIN
     bit_map_tree := BMAP_LEVEL_LIST();
-    bit_map_tree.extend(C_INDEX_DEPTH);
+    bit_map_tree.EXTEND(C_INDEX_DEPTH);
+    FOR i IN 1 .. C_INDEX_DEPTH LOOP
+      bit_map_tree(i) := BMAP_NODE_LIST();
+      bit_map_tree(i).EXTEND( CEIL(C_MAX_BITS/POWER(C_INDEX_LENGTH,i)) );
+      bit_map_tree(i).DELETE(1, CEIL(C_MAX_BITS/POWER(C_INDEX_LENGTH,i)) );
+    END LOOP;
   END init;
 
   FUNCTION deduplicate_bit_numbers_list(p_bit_numbers_list int_list) RETURN int_list IS
@@ -16,7 +21,7 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
       BULK COLLECT INTO bit_no_set
       FROM TABLE(p_bit_numbers_list)
       WHERE COLUMN_VALUE IS NOT NULL
-      ORDER BY 1 DESC;
+      ORDER BY 1;
 
       RETURN bit_no_set;
     END;
@@ -24,10 +29,9 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
   PROCEDURE assign_bit_in_segment(bit_map_tree_level IN OUT NOCOPY BMAP_NODE_LIST, segment_number IN SIMPLE_INTEGER, bit_number IN SIMPLE_INTEGER) IS
     BEGIN
      IF NOT bit_map_tree_level.EXISTS(segment_number) THEN
-       bit_map_tree_level.EXTEND(segment_number - bit_map_tree_level.LAST);
        bit_map_tree_level(segment_number) := POWER(2,bit_number);
      ELSE
-       bit_map_tree_level(segment_number) := bit_map_tree_level(segment_number) + POWER(2,bit_number);
+       bit_map_tree_level(segment_number) := bit_map_tree_level(segment_number) + POWER(2, bit_number );
      END IF;
     END;
 
@@ -43,22 +47,23 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
     END build_leaf_level;
 
   PROCEDURE build_level(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST, bit_map_level_number IN SIMPLE_INTEGER, bit_numbers_set IN INT_LIST) IS
-    first_child_level_segment     NUMBER;
-    last_child_level_segment      NUMBER;
-    bit_number     INTEGER := 0;
+    node           INTEGER;
+    bit_number     SIMPLE_INTEGER := 0;
     segment_number SIMPLE_INTEGER := 0;
     BEGIN
-      first_child_level_segment := bit_map_tree(bit_map_level_number - 1).FIRST ;
-      last_child_level_segment :=  bit_map_tree(bit_map_level_number - 1).LAST ;
-      FOR node IN first_child_level_segment .. last_child_level_segment LOOP
+      node := bit_map_tree(bit_map_level_number - 1).FIRST ;
+      LOOP
         IF bit_map_tree(bit_map_level_number - 1)(node) IS NULL THEN
           CONTINUE;
         END IF;
         bit_number := MOD(node - 1, C_INDEX_LENGTH);
         segment_number := CEIL(node / C_INDEX_LENGTH);
         assign_bit_in_segment(bit_map_tree(bit_map_level_number), segment_number, bit_number);
+        node := bit_map_tree(bit_map_level_number - 1).NEXT(node);
+        EXIT WHEN node IS NULL;
       END LOOP;
     END build_level;
+
 
   FUNCTION bit_no_lst_to_bit_map(
     p_bit_numbers_list INT_LIST
@@ -85,7 +90,6 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
     init(bit_map_tree);
 
     FOR bit_map_level_number IN 1 .. C_INDEX_DEPTH LOOP
-      bit_map_tree( bit_map_level_number ) := BMAP_NODE_LIST(0);
       IF bit_map_level_number = 1 THEN
         build_leaf_level( bit_map_tree(bit_map_level_number), bit_numbers_set);
       ELSE
@@ -98,7 +102,7 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
 
   FUNCTION bitor(
     left  SIMPLE_INTEGER ,
-    right SIMPLE_INTEGER ) RETURN SIMPLE_INTEGER
+    right SIMPLE_INTEGER ) RETURN INTEGER
   IS
   BEGIN
     RETURN left + right - BITAND( left, right );
@@ -208,5 +212,5 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
 END BMAP_UTIL;
 /
 
---ALTER PACKAGE BMAP_UTIL COMPILE DEBUG BODY;
---/
+ALTER PACKAGE BMAP_UTIL COMPILE DEBUG BODY;
+/
