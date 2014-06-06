@@ -4,7 +4,7 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
 
   it 'should return not empty record' do
     bmap_value = plsql.bmap_util.bit_no_lst_to_bit_map([1])
-    bitmap_key =  plsql.BMAP_UTIL.saveBitmapLst(bmap_value)
+    bitmap_key =  plsql.BMAP_UTIL.insertBitmapLst(bmap_value)
 
     result = plsql.BMAP_UTIL.getBitmapLst(bitmap_key)
 
@@ -19,7 +19,7 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
   end
 
   it 'should return null if bmap_key not exists' do
-    bitmap_key = plsql.select_one('select max(bitmap_key) from hierarchical_bitmap_table')
+    bitmap_key = plsql.select_one('select NVL(max(bitmap_key), 0) from hierarchical_bitmap_table')
 
     plsql.BMAP_UTIL.getBitmapLst(bitmap_key+1).should be_nil
   end

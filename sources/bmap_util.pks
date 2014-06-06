@@ -21,13 +21,28 @@ CREATE OR REPLACE PACKAGE BMAP_UTIL AS
     right SIMPLE_INTEGER
   ) RETURN SIMPLE_INTEGER;
 
-  FUNCTION saveBitmapLst (
-    bmap_list BMAP_LEVEL_LIST)
-  RETURN INTEGER;
+  FUNCTION insertBitmapLst (
+    pt_bmap_list BMAP_LEVEL_LIST
+  ) RETURN INTEGER;
 
   FUNCTION getBitmapLst (
     pi_bitmap_key INTEGER )
   RETURN BMAP_LEVEL_LIST;
+
+  FUNCTION updateBitmapLst (
+    pi_bitmap_key INTEGER,
+    pt_bmap_list BMAP_LEVEL_LIST
+  ) RETURN INTEGER;
+
+  FUNCTION deleteBitmapLst (
+    pi_bitmap_key INTEGER
+  ) RETURN INTEGER;
+
+  PROCEDURE setBitmapLst (
+    pi_bitmap_key IN OUT INTEGER,
+    pt_bmap_list BMAP_LEVEL_LIST,
+    pio_affected_rows OUT INTEGER
+  );
 
 END BMAP_UTIL;
 /
