@@ -1,4 +1,4 @@
-CREATE TABLE anydata_table(a integer, bmap anydata);
+CREATE TABLE hierarchical_bitmap_table(bitmap_key integer, bmap anydata);
 
 -- CREATE TABLE anydata_table(a integer, bmap anydata)
 -- LOB (bmap) STORE AS SECUREFILE (
@@ -26,7 +26,7 @@ BEGIN
   DBMS_PROFILER.stop_profiler;
   t := DBMS_UTILITY.get_time;
   FORALL i IN 1 .. 1000
-  INSERT INTO anydata_table
+INSERT INTO anydata_table
   VALUES (INT_LST(i), anydata.ConvertCollection(b));
   DBMS_OUTPUT.PUT_LINE('hsecs: '||(DBMS_UTILITY.get_time - t));
   DBMS_PROFILER.stop_profiler;

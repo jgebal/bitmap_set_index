@@ -163,6 +163,48 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
   BEGIN
     RETURN a + b - BITAND( a, b );
   END bitor;
+
+  FUNCTION saveBitmapLst (
+    bmap_list BMAP_LEVEL_LIST
+  ) RETURN INTEGER
+  IS
+    bitmap_key INTEGER;
+  BEGIN
+    IF bmap_list IS EMPTY or bmap_list IS NULL THEN
+      bitmap_key := 0;
+    ELSE
+      INSERT INTO hierarchical_bitmap_table VALUES(hierarchical_bitmap_key.nextval, anydata.ConvertCollection(bmap_list))
+      RETURNING bitmap_key INTO bitmap_key;
+    END IF;
+
+    RETURN bitmap_key;
+  END saveBitmapLst;
+
+  FUNCTION getBitmapLst (
+    pi_bitmap_key INTEGER
+  ) RETURN BMAP_LEVEL_LIST
+  IS
+    bmap_lst BMAP_LEVEL_LIST;
+    bmap_anydata ANYDATA;
+    is_ok pls_integer;
+  BEGIN
+    IF pi_bitmap_key IS NOT NULL THEN
+      BEGIN
+        SELECT bmap
+          INTO bmap_anydata
+          FROM hierarchical_bitmap_table t
+         WHERE t.bitmap_key = pi_bitmap_key;
+
+        is_ok := anydata.getCollection(bmap_anydata, bmap_lst);
+      EXCEPTION WHEN NO_DATA_FOUND
+                THEN bmap_lst := NULL;
+      END;
+    ELSE
+      bmap_lst := NULL;
+    END IF;
+
+    RETURN bmap_lst;
+  END getBitmapLst;
 END BMAP_UTIL;
 /
 
