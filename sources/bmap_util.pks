@@ -44,6 +44,8 @@ CREATE OR REPLACE PACKAGE BMAP_UTIL AS
     pio_affected_rows OUT INTEGER
   );
 
+  FUNCTION get_index_length RETURN INTEGER;
+
 END BMAP_UTIL;
 /
 
