@@ -39,13 +39,21 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
     result.should == [ ([1,1]),[1,1],[3],[1],[1]]
   end
 
+  it 'should create bitmap with multiple segments on different levels' do
+    result = convert_bit_list_to_hierarchical_bitmap( set_bit_in_segment(1,1), set_bit_in_segment(3,5), set_bit_in_segment(2,10) )
+    result.should == [ [1,4,2], [(1 + 2**4 + 2**9)],[1],[1],[1]]
+  end
+
   it 'should create bitmap with second segment set on second level' do
-    result = convert_bit_list_to_hierarchical_bitmap(@bits_in_segment**2+1)
-    result.should == [ ( [1] ),[1],[2],[1],[1]]
+    result = convert_bit_list_to_hierarchical_bitmap(set_bit_in_segment(1,2))
+    result.should == [ [1],[2],[1],[1],[1]]
   end
 
   def convert_bit_list_to_hierarchical_bitmap(*bit_number)
     plsql.bmap_util.bit_no_lst_to_bit_map(bit_number)
+  end
+  def set_bit_in_segment(bit,segment)
+    @bits_in_segment*(segment-1)+bit
   end
 
 end

@@ -13,16 +13,16 @@ CREATE OR REPLACE PACKAGE BMAP_UTIL AS
 
 
   FUNCTION bit_no_lst_to_bit_map(
-    p_bit_numbers_list INT_LIST
+    pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_LEVEL_LIST;
 
   FUNCTION bitor(
-    left  SIMPLE_INTEGER,
-    right SIMPLE_INTEGER
-  ) RETURN INTEGER;
+    pi_left  SIMPLE_INTEGER,
+    pi_right SIMPLE_INTEGER
+  ) RETURN SIMPLE_INTEGER;
 
   FUNCTION insertBitmapLst (
-    pt_bmap_list BMAP_LEVEL_LIST
+    pt_bitmap_list BMAP_LEVEL_LIST
   ) RETURN INTEGER;
 
   FUNCTION getBitmapLst (
@@ -31,7 +31,7 @@ CREATE OR REPLACE PACKAGE BMAP_UTIL AS
 
   FUNCTION updateBitmapLst (
     pi_bitmap_key INTEGER,
-    pt_bmap_list BMAP_LEVEL_LIST
+    pt_bitmap_list BMAP_LEVEL_LIST
   ) RETURN INTEGER;
 
   FUNCTION deleteBitmapLst (
@@ -40,7 +40,7 @@ CREATE OR REPLACE PACKAGE BMAP_UTIL AS
 
   PROCEDURE setBitmapLst (
     pi_bitmap_key IN OUT INTEGER,
-    pt_bmap_list BMAP_LEVEL_LIST,
+    pt_bitmap_list BMAP_LEVEL_LIST,
     pio_affected_rows OUT INTEGER
   );
 
