@@ -3,6 +3,12 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
   E_SUBSCRIPT_BEYOND_COUNT EXCEPTION;
   PRAGMA EXCEPTION_INIT( E_SUBSCRIPT_BEYOND_COUNT, -6533 );
 
+  PROCEDURE init(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST) IS
+  BEGIN
+    bit_map_tree := BMAP_LEVEL_LIST();
+    bit_map_tree.extend(C_INDEX_DEPTH);
+  END init;
+
   FUNCTION deduplicate_bit_numbers_list(p_bit_numbers_list int_list) RETURN int_list IS
     bit_no_set     int_list := int_list();
     BEGIN
@@ -17,12 +23,12 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
 
   PROCEDURE assign_bit_in_segment(bit_map_tree_level IN OUT NOCOPY BMAP_NODE_LIST, segment_number IN SIMPLE_INTEGER, bit_number IN SIMPLE_INTEGER) IS
     BEGIN
-      IF NOT bit_map_tree_level.EXISTS(segment_number) THEN
-        bit_map_tree_level.EXTEND(segment_number - bit_map_tree_level.LAST);
-        bit_map_tree_level(segment_number) := POWER(2,bit_number);
-      ELSE
-        bit_map_tree_level(segment_number) := bit_map_tree_level(segment_number) + POWER(2,bit_number);
-      END IF;
+     IF NOT bit_map_tree_level.EXISTS(segment_number) THEN
+       bit_map_tree_level.EXTEND(segment_number - bit_map_tree_level.LAST);
+       bit_map_tree_level(segment_number) := POWER(2,bit_number);
+     ELSE
+       bit_map_tree_level(segment_number) := bit_map_tree_level(segment_number) + POWER(2,bit_number);
+     END IF;
     END;
 
   PROCEDURE build_leaf_level(bit_map_leaves IN OUT NOCOPY BMAP_NODE_LIST, bit_numbers_set IN INT_LIST) IS
@@ -37,14 +43,14 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
     END build_leaf_level;
 
   PROCEDURE build_level(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST, bit_map_level_number IN SIMPLE_INTEGER, bit_numbers_set IN INT_LIST) IS
-    first_node     NUMBER;
-    last_node      NUMBER;
+    first_child_level_segment     NUMBER;
+    last_child_level_segment      NUMBER;
     bit_number     INTEGER := 0;
     segment_number SIMPLE_INTEGER := 0;
     BEGIN
-      first_node := CEIL( bit_map_tree(bit_map_level_number - 1).FIRST / C_INDEX_LENGTH);
-      last_node := CEIL( bit_map_tree(bit_map_level_number - 1).LAST / C_INDEX_LENGTH);
-      FOR node IN first_node .. last_node LOOP
+      first_child_level_segment := bit_map_tree(bit_map_level_number - 1).FIRST ;
+      last_child_level_segment :=  bit_map_tree(bit_map_level_number - 1).LAST ;
+      FOR node IN first_child_level_segment .. last_child_level_segment LOOP
         IF bit_map_tree(bit_map_level_number - 1)(node) IS NULL THEN
           CONTINUE;
         END IF;
@@ -65,10 +71,7 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
       RETURN bit_map_tree;
     END IF;
 
-    SELECT MAX(COLUMN_VALUE)
-    INTO max_bit_number
-    FROM TABLE(p_bit_numbers_list);
-
+    SELECT MAX(COLUMN_VALUE) INTO max_bit_number FROM TABLE(p_bit_numbers_list);
     IF max_bit_number > C_MAX_BITS THEN
       RAISE_APPLICATION_ERROR(-20000, 'Index size overflow');
     END IF;
@@ -79,13 +82,14 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
       RETURN bit_map_tree;
     END IF;
 
+    init(bit_map_tree);
+
     FOR bit_map_level_number IN 1 .. C_INDEX_DEPTH LOOP
-      bit_map_tree.extend;
       bit_map_tree( bit_map_level_number ) := BMAP_NODE_LIST(0);
       IF bit_map_level_number = 1 THEN
         build_leaf_level( bit_map_tree(bit_map_level_number), bit_numbers_set);
       ELSE
-        build_level(bit_map_tree, bit_map_level_number, bit_numbers_set);
+        build_level( bit_map_tree, bit_map_level_number, bit_numbers_set);
       END IF;
     END LOOP;
 
@@ -141,8 +145,14 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
 
     RETURN bmap_lst;
   END getBitmapLst;
+
+  FUNCTION get_index_length RETURN INTEGER IS
+  BEGIN
+    RETURN C_INDEX_LENGTH;
+  END;
+
 END BMAP_UTIL;
 /
 
-ALTER PACKAGE BMAP_UTIL COMPILE DEBUG BODY;
-/
+--ALTER PACKAGE BMAP_UTIL COMPILE DEBUG BODY;
+--/
