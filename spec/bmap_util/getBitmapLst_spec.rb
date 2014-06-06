@@ -8,7 +8,7 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
 
     result = plsql.BMAP_UTIL.getBitmapLst(bitmap_key)
 
-    result.should == [[1], [1], [1], [1], [1], [1], [1], [1]]
+    result.should == [[1], [1], [1], [1], [1]]
   end
 
   it 'should return null if bmap_key is null' do
