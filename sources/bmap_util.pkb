@@ -15,26 +15,31 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
       RETURN bit_no_set;
     END;
 
+  PROCEDURE assign_bit_in_segment(bit_map_tree_level IN OUT NOCOPY BMAP_NODE_LIST, segment_number IN SIMPLE_INTEGER, bit_number IN SIMPLE_INTEGER) IS
+    BEGIN
+      IF NOT bit_map_tree_level.EXISTS(segment_number) THEN
+        bit_map_tree_level.EXTEND(segment_number - bit_map_tree_level.LAST);
+        bit_map_tree_level(segment_number) := POWER(2,bit_number);
+      ELSE
+        bit_map_tree_level(segment_number) := bit_map_tree_level(segment_number) + POWER(2,bit_number);
+      END IF;
+    END;
+
   PROCEDURE build_leaf_level(bit_map_leaves IN OUT NOCOPY BMAP_NODE_LIST, bit_numbers_set IN INT_LIST) IS
-    bit_number     SIMPLE_INTEGER := 0;
+    bit_number     INTEGER := 0;
     segment_number SIMPLE_INTEGER := 0;
     BEGIN
       FOR idx IN bit_numbers_set.FIRST .. bit_numbers_set.LAST LOOP
         bit_number :=     MOD( bit_numbers_set(idx) - 1, C_INDEX_LENGTH );
         segment_number := CEIL( bit_numbers_set(idx) / C_INDEX_LENGTH );
-        IF NOT bit_map_leaves.exists(segment_number) THEN
-          bit_map_leaves.EXTEND(segment_number - bit_map_leaves.LAST);
-          bit_map_leaves(segment_number) := POWER(2,bit_number);
-        ELSE
-          bit_map_leaves(segment_number) := bit_map_leaves(segment_number) + POWER(2,bit_number);
-        END IF;
+        assign_bit_in_segment(bit_map_leaves, segment_number, bit_number);
       END LOOP;
     END build_leaf_level;
 
-  PROCEDURE build_level(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST, bit_map_level_number IN INTEGER, bit_numbers_set IN INT_LIST) IS
+  PROCEDURE build_level(bit_map_tree IN OUT NOCOPY BMAP_LEVEL_LIST, bit_map_level_number IN SIMPLE_INTEGER, bit_numbers_set IN INT_LIST) IS
     first_node     NUMBER;
     last_node      NUMBER;
-    bit_number     SIMPLE_INTEGER := 0;
+    bit_number     INTEGER := 0;
     segment_number SIMPLE_INTEGER := 0;
     BEGIN
       first_node := CEIL( bit_map_tree(bit_map_level_number - 1).FIRST / C_INDEX_LENGTH);
@@ -45,12 +50,7 @@ CREATE OR REPLACE PACKAGE BODY BMAP_UTIL AS
         END IF;
         bit_number := MOD(node - 1, C_INDEX_LENGTH);
         segment_number := CEIL(node / C_INDEX_LENGTH);
-        IF NOT bit_map_tree(bit_map_level_number).exists(segment_number) THEN
-          bit_map_tree(bit_map_level_number).EXTEND(segment_number - bit_map_tree(bit_map_level_number).LAST);
-          bit_map_tree(bit_map_level_number)(segment_number) := POWER(2,bit_number);
-        ELSE
-          bit_map_tree(bit_map_level_number)(segment_number) := bitor(bit_map_tree(bit_map_level_number)(segment_number), POWER(2,bit_number));
-        END IF;
+        assign_bit_in_segment(bit_map_tree(bit_map_level_number), segment_number, bit_number);
       END LOOP;
     END build_level;
 
