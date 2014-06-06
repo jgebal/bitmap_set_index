@@ -101,8 +101,8 @@ create table plsql_profiler_data
   spare3          number,           -- unused
   spare4          number,           -- unused
   --
-  primary key (runid, unit_number, line#),
-  foreign key (runid, unit_number) references plsql_profiler_units
+  primary key (runid, unit_number, line#)--,
+--  foreign key (runid, unit_number) references plsql_profiler_units
 );
 
 comment on table plsql_profiler_data is 
