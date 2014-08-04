@@ -1,8 +1,19 @@
-#Hierarchical bitmap implementation for Oracle
+#Set-based hierarchical bitmap index
 
-Hierarchical bitmap implementation in Oracle for set based operations
+Set-based Hierarchical bitmap index implementation in Oracle for set based operations.
 
-The project aims to implement a hierarchical bitmap on Oracle database using pure SQL and PL/SQL approach.
+The project aims to allow simplification and performance improvement for queries that aim to answer questions of a type:
+- List all employees that like the same fruits that Mike likes.
+- List all employees that like some part of fruits that Mike likes.
+- List all employees that like exactly the same fruit that Mike likes.
+
+The project uses hierarchical bitmap index approach for set-based operations, as described here: http://www.cs.put.poznan.pl/mmorzy/papers/adbis03.pdf
+
+The plan is to implement the index as a generic, Oracle-managed object, that will be using Oracle Extensible Indexing, as described here:
+http://docs.oracle.com/cd/B28359_01/appdev.111/b28425/ext_idx_frmwork.htm
+
+The project was build and tested using Oracle 11g XE and ruby-plsql-spec framework for unit testing.
+https://github.com/rsim/ruby-plsql-spec
 
 ----
 
