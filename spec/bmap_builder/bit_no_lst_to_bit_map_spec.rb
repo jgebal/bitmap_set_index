@@ -4,8 +4,8 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
 
   before(:each) {
     plsql.dbms_output_stream = STDOUT
-    @bits_in_segment = plsql.bmap_util.get_index_length
-    @max_bit_number = plsql.bmap_util.c_max_bits
+    @bits_in_segment = plsql.bmap_builder.get_index_length
+    @max_bit_number = plsql.bmap_builder.c_max_bits
   }
 
   it 'should return empty bitmap if empty list parameter given' do
@@ -50,7 +50,7 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
   end
 
   def convert_bit_list_to_hierarchical_bitmap(*bit_number)
-    plsql.bmap_util.bit_no_lst_to_bit_map(bit_number)
+    plsql.bmap_builder.bit_no_lst_to_bit_map(bit_number)
   end
   def set_bit_in_segment(bit,segment)
     @bits_in_segment*(segment-1)+bit
