@@ -16,6 +16,10 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
     pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_LEVEL_LIST;
 
+  FUNCTION decode_bitmap(
+    pt_bitmap_tree BMAP_LEVEL_LIST
+  ) RETURN INT_LIST;
+
   FUNCTION get_index_length RETURN INTEGER;
 
 END bmap_builder;
