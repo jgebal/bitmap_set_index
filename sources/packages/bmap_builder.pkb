@@ -80,7 +80,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END build_level;
 
 
-  FUNCTION bit_no_lst_to_bit_map(
+  FUNCTION encode_bitmap(
     pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_LEVEL_LIST IS
     bit_numbers_set INT_LIST := INT_LIST( );
@@ -112,7 +112,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       END LOOP;
 
       RETURN bit_map_tree;
-    END bit_no_lst_to_bit_map;
+    END encode_bitmap;
 
   FUNCTION get_index_length RETURN INTEGER IS
     BEGIN

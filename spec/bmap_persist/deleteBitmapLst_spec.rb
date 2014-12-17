@@ -2,7 +2,7 @@ require_relative '../spec_helper'
 
 describe 'should delete bitmap list from bitmap table' do
   before(:each) do
-    @bmap_value = plsql.bmap_builder.bit_no_lst_to_bit_map([1])
+    @bmap_value = encode_bitmap(1)
   end
 
   it 'should delete only one record from table' do

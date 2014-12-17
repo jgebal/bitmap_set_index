@@ -3,7 +3,7 @@ require_relative '../spec_helper'
 describe 'should get bitmap list from bitmap table for given bitmap key' do
 
   it 'should return not empty record' do
-    bmap_value = plsql.bmap_builder.bit_no_lst_to_bit_map([1])
+    bmap_value = encode_bitmap(1)
     bitmap_key =  plsql.bmap_persist.insertBitmapLst(bmap_value)
 
     result = plsql.bmap_persist.getBitmapLst(bitmap_key)

@@ -12,7 +12,7 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
   C_MAX_BITS CONSTANT NUMBER := POWER( C_INDEX_LENGTH, C_INDEX_DEPTH );
 
 
-  FUNCTION bit_no_lst_to_bit_map(
+  FUNCTION encode_bitmap(
     pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_LEVEL_LIST;
 
