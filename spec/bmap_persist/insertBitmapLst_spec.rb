@@ -1,4 +1,5 @@
 require_relative '../spec_helper'
+require_relative '../helpers/bmap_helpers'
 
 describe 'should save bitmap list to bitmap table' do
 

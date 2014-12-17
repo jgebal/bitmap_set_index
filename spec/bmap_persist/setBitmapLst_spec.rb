@@ -1,4 +1,5 @@
 require_relative '../spec_helper'
+require_relative '../helpers/bmap_helpers'
 
 describe 'should set bitmap list for given bitmap key' do
   before(:each) do

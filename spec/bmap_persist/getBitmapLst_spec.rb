@@ -1,4 +1,5 @@
 require_relative '../spec_helper'
+require_relative '../helpers/bmap_helpers'
 
 describe 'should get bitmap list from bitmap table for given bitmap key' do
 
