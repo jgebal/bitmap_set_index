@@ -1,8 +1,8 @@
-ALTER SESSION SET PLSQL_WARNINGS='ENABLE:ALL';
+ALTER SESSION SET PLSQL_WARNINGS = 'ENABLE:ALL';
 
-ALTER SESSION SET PLSQL_CODE_TYPE=NATIVE;
+ALTER SESSION SET PLSQL_CODE_TYPE = NATIVE;
 /
-ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL=3;
+ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 /
 
 CREATE OR REPLACE PACKAGE BODY bmap_builder AS
@@ -117,34 +117,40 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
   FUNCTION decode_bitmap(
     pt_bitmap_tree BMAP_LEVEL_LIST
   ) RETURN INT_LIST IS
-    bit_numbers_list INT_LIST := INT_LIST();
-    node INTEGER;
-    bitmap_leafs        BMAP_NODE_LIST;
-    remaining_value     BINARY_INTEGER;
-    bit_pos             INTEGER := 1;
     BEGIN
       IF pt_bitmap_tree IS NULL OR pt_bitmap_tree IS EMPTY THEN
-       RETURN bit_numbers_list;
+        RETURN INT_LIST( );
       END IF;
-      bitmap_leafs := pt_bitmap_tree(1);
-      node := bitmap_leafs.FIRST;
-      LOOP
-        EXIT WHEN node IS NULL;
-        bit_pos := C_INDEX_LENGTH * ( node - 1 ) + 1;
 
-        remaining_value := bitmap_leafs(node);
+      RETURN decode_bitmap_level( pt_bitmap_tree(1) );
+    END decode_bitmap;
+
+  FUNCTION decode_bitmap_level(
+    pt_bitmap_node_list BMAP_NODE_LIST
+  ) RETURN INT_LIST IS
+    bit_numbers_list INT_LIST := INT_LIST( );
+    node_number      INTEGER;
+    remaining_value  BINARY_INTEGER;
+    bit_pos          INTEGER;
+    BEGIN
+      node_number := pt_bitmap_node_list.FIRST;
+      LOOP
+        EXIT WHEN node_number IS NULL;
+        bit_pos := C_INDEX_LENGTH * ( node_number - 1 ) + 1;
+
+        remaining_value := pt_bitmap_node_list( node_number );
         WHILE remaining_value > 0 LOOP
           IF MOD( remaining_value, 2 ) > 0 THEN
             bit_numbers_list.EXTEND;
             bit_numbers_list( bit_numbers_list.LAST ) := bit_pos;
           END IF;
-          remaining_value := TRUNC(remaining_value / 2);
+          remaining_value := TRUNC( remaining_value / 2 );
           bit_pos := bit_pos + 1;
         END LOOP;
-        node := bitmap_leafs.NEXT( node );
+        node_number := pt_bitmap_node_list.NEXT( node_number );
       END LOOP;
       RETURN bit_numbers_list;
-    END decode_bitmap;
+    END decode_bitmap_level;
 
   FUNCTION get_index_length RETURN INTEGER IS
     BEGIN

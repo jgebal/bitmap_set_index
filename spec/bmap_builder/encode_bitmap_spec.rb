@@ -3,11 +3,7 @@ require_relative '../helpers/bmap_helpers'
 
 describe 'Convert list of bit numbers to hierarchical bitmap' do
 
-  before(:all) {
-    plsql.dbms_output_stream = STDOUT
-    @bits_in_segment = plsql.bmap_builder.get_index_length
-    @max_bit_number = plsql.bmap_builder.c_max_bits
-  }
+  include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if empty list parameter given' do
     encode_bitmap( nil ).should == []
@@ -48,6 +44,17 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
   it 'should create bitmap with second segment set on second level' do
     result = encode_bitmap(set_bit_in_segment(1,2))
     result.should == [ [1],[2],[1],[1],[1]]
+  end
+
+  it 'should create bitmap with last segment fully set' do
+    result = encode_bitmap( (1..@bits_in_segment).to_a)
+    result.should == [ [(2**@bits_in_segment)-1],[1],[1],[1],[1]]
+  end
+
+  it 'should create bitmap with last segment set' do
+    result = encode_bitmap( ((@max_bit_number-(@bits_in_segment-1))..@max_bit_number).to_a )
+    last_element = (2**(@bits_in_segment-1))
+    result.should == [ [(2**@bits_in_segment)-1],[last_element],[last_element],[last_element],[last_element]]
   end
 
 end

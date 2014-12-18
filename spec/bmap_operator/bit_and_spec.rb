@@ -3,18 +3,21 @@ require_relative '../helpers/bmap_helpers'
 
 describe 'Perform Bit AND operation on encoded bitmaps' do
 
-  before(:all) {
-    plsql.dbms_output_stream = STDOUT
-    @bits_in_segment = plsql.bmap_builder.get_index_length
-    @max_bit_number = plsql.bmap_builder.c_max_bits
-  }
+  include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if one of input bitmaps is empty' do
-    bit_and( encode_bitmap(nil), encode_bitmap(1, nil, 3) ).should == []
+    bit_and( [nil], [1, nil, 3] ).should == []
   end
 
   it 'should return the same bitmap if both bitmaps are equal' do
-    bit_map = encode_bitmap(1,2,3,4)
+    bit_map = [1,2,3,4]
     bit_and( bit_map, bit_map ).should == bit_map
+  end
+
+  it 'should return common part when bitmaps are different' do
+    left_bits  = [1,2,3,4,30,31,32,140,30000,      128888]
+    right_bits = [1,  3,4,   31,32,140,      35000,128888,2800000]
+    expected   = [1,  3,4,   31,32,140,            128888]
+    bit_and( left_bits, right_bits ).should == expected
   end
 end

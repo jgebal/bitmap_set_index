@@ -8,8 +8,8 @@ ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 CREATE OR REPLACE PACKAGE bmap_operator AS
 
   FUNCTION bit_and(
-    left IN BMAP_LEVEL_LIST,
-    right IN BMAP_LEVEL_LIST
+    pt_bmap_left  IN BMAP_LEVEL_LIST,
+    pt_bmap_right IN BMAP_LEVEL_LIST
   ) RETURN BMAP_LEVEL_LIST;
 
 END bmap_operator;

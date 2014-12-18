@@ -3,9 +3,7 @@ require_relative '../helpers/bmap_helpers'
 
 describe 'Convert hierarchical bitmap to list of bit numbers' do
 
-  before(:all) {
-    plsql.dbms_output_stream = STDOUT
-  }
+  include_context 'shared bitmap builder'
 
   it 'should return empty list if empty list parameter given' do
     decode_bitmap( encode_bitmap( nil ) ).should == []
@@ -23,6 +21,19 @@ describe 'Convert hierarchical bitmap to list of bit numbers' do
     expected = list.reject{ |e| e.nil? }
     result = decode_bitmap( encode_bitmap( list ) )
     result.should == expected
+  end
+
+  it 'should deoode a bitmap into a valid list' do
+    bmap=[[17],[1],[1],[1],[1]]
+    expected = [1,5]
+    decode_bitmap( bmap ).should==expected
+  end
+
+  it 'should decode bitmap with last segment set ' do
+    expected = ( ((@max_bit_number-(@bits_in_segment-1))..@max_bit_number).to_a )
+    result = encode_and_decode_bitmap( expected  )
+    result.should == expected
+
   end
 
 end

@@ -22,6 +22,12 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
 
   FUNCTION get_index_length RETURN INTEGER;
 
+  PROCEDURE init( pt_bitmap_tree IN OUT NOCOPY BMAP_LEVEL_LIST );
+
+  FUNCTION decode_bitmap_level(
+    pt_bitmap_node_list BMAP_NODE_LIST
+  ) RETURN INT_LIST;
+
 END bmap_builder;
 /
 
