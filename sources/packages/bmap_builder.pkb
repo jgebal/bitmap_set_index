@@ -89,8 +89,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       IF NOT pt_bitmap_tree_level.EXISTS( segment_number ) THEN
         pt_bitmap_tree_level( segment_number ) := POWER( 2, bit_number_in_segment );
       ELSE
-        pt_bitmap_tree_level( segment_number ) := pt_bitmap_tree_level( segment_number ) +
-                                                  POWER( 2, bit_number_in_segment );
+        PRAGMA INLINE (bitor, 'YES');
+        pt_bitmap_tree_level( segment_number ) := bitor( pt_bitmap_tree_level( segment_number ), POWER( 2, bit_number_in_segment ) );
       END IF;
     END assign_bit_in_segment;
 
@@ -123,15 +123,15 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END build_level;
 
 
-  FUNCTION encode_bitmap(
-    pt_bit_numbers_list INT_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
+  PROCEDURE add_bit_list_to_bitmap(
+    pt_bit_numbers_list INT_LIST,
+    pt_bit_map_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
+  ) IS
     bit_numbers_set INT_LIST := INT_LIST( );
-    bit_map_tree    BMAP_LEVEL_LIST := BMAP_LEVEL_LIST( );
     max_bit_number  NUMBER;
     BEGIN
       IF pt_bit_numbers_list IS NULL OR CARDINALITY( pt_bit_numbers_list ) = 0 THEN
-        RETURN bit_map_tree;
+        RETURN;
       END IF;
 
       SELECT
@@ -144,26 +144,28 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       bit_numbers_set := deduplicate_bit_numbers_list( pt_bit_numbers_list );
 
       IF bit_numbers_set.COUNT = 0 THEN
-        RETURN bit_map_tree;
+        RETURN;
       END IF;
 
-      init( bit_map_tree );
+      IF pt_bit_map_tree IS NULL OR pt_bit_map_tree IS EMPTY THEN
+        init( pt_bit_map_tree );
+      END IF;
 
-      build_leaf_level( bit_map_tree( 1 ), bit_numbers_set );
+      build_leaf_level( pt_bit_map_tree( 1 ), bit_numbers_set );
       FOR bit_map_level_number IN 2 .. C_INDEX_DEPTH LOOP
-        build_level( bit_map_tree, bit_map_level_number );
+        build_level( pt_bit_map_tree, bit_map_level_number );
       END LOOP;
 
+    END add_bit_list_to_bitmap;
+
+  FUNCTION encode_bitmap(
+    pt_bit_numbers_list INT_LIST
+  ) RETURN BMAP_LEVEL_LIST IS
+    bit_map_tree    BMAP_LEVEL_LIST := BMAP_LEVEL_LIST( );
+    BEGIN
+      add_bit_list_to_bitmap(pt_bit_numbers_list, bit_map_tree);
       RETURN bit_map_tree;
     END encode_bitmap;
-
-  PROCEDURE add_bit_list_to_bitmap(
-    pt_bit_numbers_list INT_LIST,
-    pt_bitmap_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
-  ) IS
-    BEGIN
-      NULL;
-    END add_bit_list_to_bitmap;
 
   FUNCTION decode_bitmap(
     pt_bitmap_tree BMAP_LEVEL_LIST

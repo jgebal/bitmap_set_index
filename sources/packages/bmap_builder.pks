@@ -32,7 +32,7 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
 
   PROCEDURE add_bit_list_to_bitmap(
     pt_bit_numbers_list INT_LIST,
-    pt_bitmap_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bit_map_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
   );
 
   FUNCTION get_index_length RETURN INTEGER;
