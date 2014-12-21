@@ -13,5 +13,3 @@
 @@../sources/packages/bmap_builder.pkb
 @@../sources/packages/bmap_persist.pkb
 @@../sources/packages/mapping_util.pkb
-@@../sources/packages/bmap_operator.pks
-@@../sources/packages/bmap_operator.pkb

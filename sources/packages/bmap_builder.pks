@@ -20,6 +20,21 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
     pt_bitmap_tree BMAP_LEVEL_LIST
   ) RETURN INT_LIST;
 
+  FUNCTION bit_and(
+    pt_bmap_left  IN BMAP_LEVEL_LIST,
+    pt_bmap_right IN BMAP_LEVEL_LIST
+  ) RETURN BMAP_LEVEL_LIST;
+
+  FUNCTION bit_or(
+    pt_bmap_left  IN BMAP_LEVEL_LIST,
+    pt_bmap_right IN BMAP_LEVEL_LIST
+  ) RETURN BMAP_LEVEL_LIST;
+
+  PROCEDURE add_bit_list_to_bitmap(
+    pt_bit_numbers_list INT_LIST,
+    pt_bitmap_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
+  );
+
   FUNCTION get_index_length RETURN INTEGER;
 
   PROCEDURE init( pt_bitmap_tree IN OUT NOCOPY BMAP_LEVEL_LIST );

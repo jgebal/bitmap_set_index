@@ -17,7 +17,7 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION encode_bitand_test(pt_left INT_LIST, pt_right INT_LIST) RETURN INT_LIST IS
       BEGIN
         RETURN bmap_builder.decode_bitmap(
-                 bmap_operator.bit_and(
+                 bmap_builder.bit_and(
                    bmap_builder.encode_bitmap( pt_left ),
                    bmap_builder.encode_bitmap( pt_right )
                  )
@@ -30,11 +30,22 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION encode_bitor_test(pt_left INT_LIST, pt_right INT_LIST) RETURN INT_LIST IS
       BEGIN
         RETURN bmap_builder.decode_bitmap(
-                 bmap_operator.bit_or(
+                 bmap_builder.bit_or(
                    bmap_builder.encode_bitmap( pt_left ),
                    bmap_builder.encode_bitmap( pt_right )
                  )
                );
+      END;
+    SQL
+    )
+    plsql.execute(
+        <<-SQL
+      CREATE OR REPLACE FUNCTION add_bit_list_to_bitmap_test(pt_bit_numbers_list INT_LIST, pt_bit_map_to_build INT_LIST) RETURN INT_LIST IS
+        bit_map BMAP_LEVEL_LIST;
+      BEGIN
+        bit_map := bmap_builder.encode_bitmap( pt_bit_map_to_build );
+        bmap_builder.add_bit_list_to_bitmap( pt_bit_numbers_list, bit_map );
+        RETURN bmap_builder.decode_bitmap( bit_map );
       END;
     SQL
     )
@@ -44,6 +55,7 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute('DROP FUNCTION encode_decode_test;')
     plsql.execute('DROP FUNCTION encode_bitand_test;')
     plsql.execute('DROP FUNCTION encode_bitor_test;')
+    plsql.execute('DROP FUNCTION add_bit_list_to_bitmap_test;')
   end
 
   def encode_and_decode_bitmap(bit_number_list)
@@ -56,6 +68,10 @@ RSpec.shared_context 'shared bitmap builder' do
 
   def bit_or( left, right )
     plsql.encode_bitor_test(left, right)
+  end
+
+  def add_bit_list_to_bitmap(bit_list, bit_map)
+    plsql.add_bit_list_to_bitmap_test(bit_list, bit_map)
   end
 
 end
