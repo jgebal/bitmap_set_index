@@ -162,7 +162,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     pt_bitmap_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
   ) IS
     BEGIN
-      NULL ;
+      NULL;
     END add_bit_list_to_bitmap;
 
   FUNCTION decode_bitmap(
