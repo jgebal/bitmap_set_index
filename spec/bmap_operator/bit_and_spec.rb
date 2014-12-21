@@ -20,4 +20,11 @@ describe 'Perform Bit AND operation on encoded bitmaps' do
     expected   = [1,  3,4,   31,32,140,            128888]
     bit_and( left_bits, right_bits ).should == expected
   end
+
+  it 'should return empty bitmap when bitmaps have nothing in common' do
+    left_bits  = [1,2,3,4,30,31,32,140,30000,128888]
+    right_bits = [5,6,7,8,29,33,34,141,35000,239999,2800000]
+    expected   = []
+    bit_and( left_bits, right_bits ).should == expected
+  end
 end
