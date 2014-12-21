@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
 require_relative '../helpers/bmap_helpers'
 
-describe 'Perform Bit AND operation on encoded bitmaps' do
+describe 'Perform BIT AND operation on encoded bitmaps' do
 
   include_context 'shared bitmap builder'
 

@@ -12,6 +12,11 @@ CREATE OR REPLACE PACKAGE bmap_operator AS
     pt_bmap_right IN BMAP_LEVEL_LIST
   ) RETURN BMAP_LEVEL_LIST;
 
+  FUNCTION bit_or(
+    pt_bmap_left  IN BMAP_LEVEL_LIST,
+    pt_bmap_right IN BMAP_LEVEL_LIST
+  ) RETURN BMAP_LEVEL_LIST;
+
 END bmap_operator;
 /
 
