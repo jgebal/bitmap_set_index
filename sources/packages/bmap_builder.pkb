@@ -9,6 +9,9 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
 --PRIVATE SPECIFICATIONS
 
+  ge_subscript_beyond_count EXCEPTION;
+  PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
+
   PROCEDURE bit_and_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
@@ -23,6 +26,13 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     pt_level       IN            BINARY_INTEGER,
     pt_compare_lst IN            INT_LIST,
     pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
+  );
+
+  PROCEDURE bit_minus_on_level(
+    pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
+    pt_bmap_right  IN            BMAP_LEVEL_LIST,
+    pt_level       IN            BINARY_INTEGER,
+    pt_compare_lst IN            INT_LIST
   );
 
   FUNCTION get_val_from_lst(
@@ -122,7 +132,6 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       END LOOP;
     END build_level;
 
-
   PROCEDURE add_bit_list_to_bitmap(
     pt_bit_numbers_list INT_LIST,
     pt_bit_map_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
@@ -182,9 +191,9 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     pt_bitmap_node_list BMAP_NODE_LIST
   ) RETURN INT_LIST IS
     bit_numbers_list INT_LIST := INT_LIST( );
-    node_number      INTEGER;
+    node_number      BINARY_INTEGER;
     remaining_value  BINARY_INTEGER;
-    bit_pos          INTEGER;
+    bit_pos          BINARY_INTEGER;
     BEGIN
       node_number := pt_bitmap_node_list.FIRST;
       LOOP
@@ -192,12 +201,12 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
         bit_pos := C_INDEX_LENGTH * ( node_number - 1 ) + 1;
 
         remaining_value := pt_bitmap_node_list( node_number );
-        WHILE remaining_value > 0 LOOP
+        WHILE remaining_value != 0 LOOP
           IF MOD( remaining_value, 2 ) > 0 THEN
             bit_numbers_list.EXTEND;
             bit_numbers_list( bit_numbers_list.LAST ) := bit_pos;
           END IF;
-          remaining_value := TRUNC( remaining_value / 2 );
+          remaining_value := FLOOR(remaining_value / 2);
           bit_pos := bit_pos + 1;
         END LOOP;
         node_number := pt_bitmap_node_list.NEXT( node_number );
@@ -268,6 +277,39 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       END IF;
     END bit_or_on_level;
 
+  PROCEDURE bit_minus_on_level(
+    pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
+    pt_bmap_right  IN            BMAP_LEVEL_LIST,
+    pt_level       IN            BINARY_INTEGER,
+    pt_compare_lst IN            INT_LIST
+  ) IS
+    node_value  BINARY_INTEGER;
+    v_left_val  BINARY_INTEGER;
+    v_right_val BINARY_INTEGER;
+    BEGIN
+      IF pt_level > 0 THEN
+        FOR i IN 1 .. CARDINALITY( pt_bmap_left( pt_level ) ) LOOP
+          BEGIN
+            v_left_val := pt_bmap_left( pt_level )( pt_compare_lst( i ) );
+            v_right_val := pt_bmap_right( pt_level )( pt_compare_lst( i ) );
+            node_value := v_left_val - BITAND(v_left_val, v_right_val);
+            IF node_value > 0 THEN
+              pt_bmap_left( pt_level )( pt_compare_lst( i ) ) := node_value;
+            ELSE
+              pt_bmap_left( pt_level ).DELETE( pt_compare_lst( i ) );
+            END IF;
+          EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
+            NULL;
+          END;
+        END LOOP;
+        bit_minus_on_level(
+            pt_bmap_left,
+            pt_bmap_right,
+            pt_level - 1,
+            decode_bitmap_level( pt_bmap_left( pt_level ) ) );
+      END IF;
+    END bit_minus_on_level;
+
   FUNCTION bit_and(
     pt_bmap_left  IN BMAP_LEVEL_LIST,
     pt_bmap_right IN BMAP_LEVEL_LIST
@@ -309,6 +351,26 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
           result_bmap );
       RETURN result_bmap;
     END bit_or;
+
+  FUNCTION bit_minus(
+    pt_bmap_left  IN BMAP_LEVEL_LIST,
+    pt_bmap_right IN BMAP_LEVEL_LIST
+  ) RETURN BMAP_LEVEL_LIST IS
+    result_bmap   BMAP_LEVEL_LIST := pt_bmap_left;
+    bitmap_height BINARY_INTEGER;
+    BEGIN
+      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left IS EMPTY OR
+         pt_bmap_right IS EMPTY THEN
+        RETURN result_bmap;
+      END IF;
+      bit_minus_on_level(
+          result_bmap,
+          pt_bmap_right,
+          C_INDEX_DEPTH,
+          INT_LIST( 1 ));
+      RETURN result_bmap;
+    END bit_minus;
+
 
   FUNCTION get_index_length RETURN INTEGER IS
     BEGIN
