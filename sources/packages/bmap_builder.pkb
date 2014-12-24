@@ -12,6 +12,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
   ge_subscript_beyond_count EXCEPTION;
   PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
 
+  gc_bit_values_in_byte    CONSTANT BMAP_LEVEL_LIST := init_bit_values_in_byte();
+
   PROCEDURE bit_and_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
@@ -191,23 +193,29 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     pt_bitmap_node_list BMAP_NODE_LIST
   ) RETURN INT_LIST IS
     bit_numbers_list INT_LIST := INT_LIST( );
+    byte_values_list BMAP_NODE_LIST;
     node_number      BINARY_INTEGER;
     remaining_value  BINARY_INTEGER;
     bit_pos          BINARY_INTEGER;
+    byte_values_idx  BINARY_INTEGER;
     BEGIN
       node_number := pt_bitmap_node_list.FIRST;
       LOOP
         EXIT WHEN node_number IS NULL;
-        bit_pos := C_INDEX_LENGTH * ( node_number - 1 ) + 1;
+        bit_pos := C_INDEX_LENGTH * ( node_number - 1 );
 
         remaining_value := pt_bitmap_node_list( node_number );
         WHILE remaining_value != 0 LOOP
-          IF MOD( remaining_value, 2 ) > 0 THEN
-            bit_numbers_list.EXTEND;
-            bit_numbers_list( bit_numbers_list.LAST ) := bit_pos;
+          byte_values_idx := MOD( remaining_value, 1024 );
+          IF byte_values_idx > 0 THEN
+            byte_values_list := gc_bit_values_in_byte( byte_values_idx );
+            FOR i IN byte_values_list.FIRST .. byte_values_list.LAST LOOP
+              bit_numbers_list.EXTEND;
+              bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i)+bit_pos;
+            END LOOP;
           END IF;
-          remaining_value := FLOOR(remaining_value / 2);
-          bit_pos := bit_pos + 1;
+          remaining_value := FLOOR(remaining_value / 1024);
+          bit_pos := bit_pos + 10;
         END LOOP;
         node_number := pt_bitmap_node_list.NEXT( node_number );
       END LOOP;
@@ -376,6 +384,74 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     BEGIN
       RETURN C_INDEX_LENGTH;
     END;
+
+/**
+ * Package constant initialization function - do not modify this code
+ *  if you dont know what you're doing
+ * Function returns a PL/SQL TABLE in format:
+ *  initBitValuesInByte('00') -> ()
+ *  initBitValuesInByte('01') -> (1)
+ * ...
+ *  initBitValuesInByte('0F') -> (1,2,3,4,5,6,7,8)
+ * ...
+ *  initBitValuesInByte('FF') -> (1,2,3,4,5,6,7,8..., 16)
+ */
+  FUNCTION init_bit_values_in_byte RETURN BMAP_LEVEL_LIST
+  IS
+    v_low_values_in_byte  BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
+    v_high_values_in_byte BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
+    v_result              BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
+    idx                   BINARY_INTEGER;
+    BEGIN
+      v_low_values_in_byte.EXTEND(32);
+      v_high_values_in_byte.EXTEND(32);
+      v_result.EXTEND(1023);
+      v_low_values_in_byte( 1) := BMAP_NODE_LIST(1);
+      v_low_values_in_byte( 2) := BMAP_NODE_LIST(2);
+      v_low_values_in_byte( 3) := BMAP_NODE_LIST(1,2);
+      v_low_values_in_byte( 4) := BMAP_NODE_LIST(3);
+      v_low_values_in_byte( 5) := BMAP_NODE_LIST(1,3);
+      v_low_values_in_byte( 6) := BMAP_NODE_LIST(2,3);
+      v_low_values_in_byte( 7) := BMAP_NODE_LIST(1,2,3);
+      v_low_values_in_byte( 8) := BMAP_NODE_LIST(4);
+      v_low_values_in_byte( 9) := BMAP_NODE_LIST(1,4);
+      v_low_values_in_byte(10) := BMAP_NODE_LIST(2,4);
+      v_low_values_in_byte(11) := BMAP_NODE_LIST(1,2,4);
+      v_low_values_in_byte(12) := BMAP_NODE_LIST(3,4);
+      v_low_values_in_byte(13) := BMAP_NODE_LIST(1,3,4);
+      v_low_values_in_byte(14) := BMAP_NODE_LIST(2,3,4);
+      v_low_values_in_byte(15) := BMAP_NODE_LIST(1,2,3,4);
+      v_low_values_in_byte(16) := BMAP_NODE_LIST(5);
+      v_low_values_in_byte(17) := BMAP_NODE_LIST(1,5);
+      v_low_values_in_byte(18) := BMAP_NODE_LIST(2,5);
+      v_low_values_in_byte(19) := BMAP_NODE_LIST(1,2,5);
+      v_low_values_in_byte(20) := BMAP_NODE_LIST(3,5);
+      v_low_values_in_byte(21) := BMAP_NODE_LIST(1,3,5);
+      v_low_values_in_byte(22) := BMAP_NODE_LIST(2,3,5);
+      v_low_values_in_byte(23) := BMAP_NODE_LIST(1,2,3,5);
+      v_low_values_in_byte(24) := BMAP_NODE_LIST(4,5);
+      v_low_values_in_byte(25) := BMAP_NODE_LIST(1,4,5);
+      v_low_values_in_byte(26) := BMAP_NODE_LIST(2,4,5);
+      v_low_values_in_byte(27) := BMAP_NODE_LIST(1,2,4,5);
+      v_low_values_in_byte(28) := BMAP_NODE_LIST(3,4,5);
+      v_low_values_in_byte(29) := BMAP_NODE_LIST(1,3,4,5);
+      v_low_values_in_byte(30) := BMAP_NODE_LIST(2,3,4,5);
+      v_low_values_in_byte(31) := BMAP_NODE_LIST(1,2,3,4,5);
+      v_low_values_in_byte(32) := BMAP_NODE_LIST();
+      FOR h IN 1 .. CARDINALITY( v_high_values_in_byte ) LOOP
+        v_high_values_in_byte(h) := v_low_values_in_byte(h);
+        FOR x IN 1 .. CARDINALITY( v_high_values_in_byte( h ) ) LOOP
+          v_high_values_in_byte( h )( x ) := v_low_values_in_byte( h )( x ) + 5;
+        END LOOP;
+        FOR l IN 1 .. CARDINALITY( v_low_values_in_byte ) LOOP
+          idx := MOD( h, 32 )*32 + MOD( l, 32 );
+          IF idx > 0 THEN
+            v_result( idx ) := v_low_values_in_byte( l ) MULTISET UNION v_high_values_in_byte( h );
+          END IF;
+        END LOOP;
+      END LOOP;
+      RETURN v_result;
+    END init_bit_values_in_byte;
 
 END bmap_builder;
 /
