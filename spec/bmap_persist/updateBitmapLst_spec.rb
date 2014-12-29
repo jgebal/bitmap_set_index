@@ -2,7 +2,7 @@ require_relative '../spec_helper'
 
 describe 'should update bitmap list to bitmap table' do
   before(:each) do
-    @bmap_value = plsql.bmap_persist.bit_no_lst_to_bit_map([1])
+    @bmap_value = encode_bitmap([1])
   end
 
   it 'should update record to table' do
@@ -28,12 +28,12 @@ describe 'should update bitmap list to bitmap table' do
   it 'should return -1 when bitmap list is empty' do
     keyid = plsql.bmap_persist.insertBitmapLst(@bmap_value)
 
-    plsql.bmap_persist.updateBitmapLst(keyid, plsql.bmap_persist.bit_no_lst_to_bit_map([])).should == -1
+    plsql.bmap_persist.updateBitmapLst(keyid, encode_bitmap([])).should == -1
   end
 
   it 'should modify bitmap in bitmap table' do
     keyid = plsql.bmap_persist.insertBitmapLst(@bmap_value)
-    tmp_bmap_value = plsql.bmap_persist.bit_no_lst_to_bit_map([5])
+    tmp_bmap_value = encode_bitmap([5])
 
     plsql.bmap_persist.updateBitmapLst(keyid, tmp_bmap_value)
 
