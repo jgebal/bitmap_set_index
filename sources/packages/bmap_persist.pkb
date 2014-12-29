@@ -105,11 +105,6 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
       END IF;
     END setBitmapLst;
 
-  FUNCTION get_index_length RETURN INTEGER IS
-    BEGIN
-      RETURN C_INDEX_LENGTH;
-    END;
-
 END bmap_persist;
 /
 

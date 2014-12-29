@@ -30,8 +30,6 @@ CREATE OR REPLACE PACKAGE bmap_persist AS
     pio_affected_rows OUT    INTEGER
   );
 
-  FUNCTION get_index_length RETURN INTEGER;
-
 END bmap_persist;
 /
 
