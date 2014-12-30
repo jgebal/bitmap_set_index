@@ -25,6 +25,10 @@ DECLARE
   BITS         INTEGER := 250000;
 BEGIN
 
+  DBMS_OUTPUT.PUT_LINE('Running with parameters:');
+  DBMS_OUTPUT.PUT_LINE('        loops = '||loops);
+  DBMS_OUTPUT.PUT_LINE(' bmap_density = '||bmap_density);
+  DBMS_OUTPUT.PUT_LINE('         BITS = '||BITS);
   SELECT column_value BULK COLLECT INTO int_lst FROM TABLE( bmap_list_generator(bits, bmap_density) );
 
   mystats_pkg.ms_start;

@@ -25,9 +25,11 @@ DECLARE
   BITS         INTEGER := 25000000;
 BEGIN
 
-  SELECT column_value
-  BULK COLLECT INTO int_lst
-  FROM TABLE( bmap_list_generator(bits, bmap_density) );
+  DBMS_OUTPUT.PUT_LINE('Running with parameters:');
+  DBMS_OUTPUT.PUT_LINE('        loops = '||loops);
+  DBMS_OUTPUT.PUT_LINE(' bmap_density = '||bmap_density);
+  DBMS_OUTPUT.PUT_LINE('         BITS = '||BITS);
+  SELECT column_value BULK COLLECT INTO int_lst FROM TABLE( bmap_list_generator(bits, bmap_density) );
 
   DBMS_PROFILER.START_PROFILER(
       'bmap_builder.encode_bitmap ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );

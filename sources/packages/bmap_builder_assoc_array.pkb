@@ -17,30 +17,30 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
   PROCEDURE bit_and_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
     pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
   );
 
   PROCEDURE bit_or_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
     pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
   );
 
   PROCEDURE bit_minus_on_level(
     pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER
   );
 
   FUNCTION get_val_from_lst(
     p_val_lst IN BMAP_NODE_LIST,
-    p_pos     IN BINARY_INTEGER
-  ) RETURN BINARY_INTEGER DETERMINISTIC;
+    p_pos     IN PLS_INTEGER
+  ) RETURN PLS_INTEGER DETERMINISTIC;
 
 --IMPLEMENTATIONS
 
@@ -50,13 +50,6 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       FOR i IN 1 .. C_INDEX_DEPTH LOOP
         pt_bitmap_tree( i ) := x;
       END LOOP;
---       pt_bitmap_tree := BMAP_LEVEL_LIST( );
---       pt_bitmap_tree.EXTEND( C_INDEX_DEPTH );
---       FOR i IN 1 .. C_INDEX_DEPTH LOOP
---         pt_bitmap_tree( i ) := BMAP_NODE_LIST( );
---         pt_bitmap_tree( i ).EXTEND( CEIL( C_MAX_BITS / POWER( C_INDEX_LENGTH, i ) ) );
---         pt_bitmap_tree( i ).DELETE( 1, CEIL( C_MAX_BITS / POWER( C_INDEX_LENGTH, i ) ) );
---       END LOOP;
     END init;
 
   FUNCTION bitor(
@@ -69,8 +62,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
   FUNCTION get_val_from_lst(
     p_val_lst IN BMAP_NODE_LIST,
-    p_pos     IN BINARY_INTEGER
-  ) RETURN BINARY_INTEGER DETERMINISTIC IS
+    p_pos     IN PLS_INTEGER
+  ) RETURN PLS_INTEGER DETERMINISTIC IS
     BEGIN
       RETURN p_val_lst(p_pos);
       EXCEPTION WHEN NO_DATA_FOUND THEN
@@ -195,33 +188,50 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       RETURN decode_bitmap_level( pt_bitmap_tree(1) );
     END decode_bitmap;
 
+  FUNCTION decode_bitmap_node(
+    p_node_value PLS_INTEGER
+  ) RETURN PLS_INT_LIST IS
+    bit_numbers_list PLS_INT_LIST := PLS_INT_LIST( );
+    byte_values_list BMAP_NODE_LIST;
+    remaining_value  PLS_INTEGER;
+    bit_pos          PLS_INTEGER := 0;
+    byte_values_idx  PLS_INTEGER;
+    BEGIN
+      remaining_value := p_node_value;
+      WHILE remaining_value != 0 LOOP
+        byte_values_idx := MOD( remaining_value, 1024 );
+        IF byte_values_idx > 0 THEN
+          byte_values_list := gc_bit_values_in_byte( byte_values_idx );
+          FOR i IN byte_values_list.FIRST .. byte_values_list.LAST LOOP
+            bit_numbers_list.EXTEND;
+            bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i)+bit_pos;
+          END LOOP;
+        END IF;
+        remaining_value := FLOOR(remaining_value / 1024);
+        bit_pos := bit_pos + 10;
+      END LOOP;
+      RETURN bit_numbers_list;
+    END decode_bitmap_node;
+
   FUNCTION decode_bitmap_level(
     pt_bitmap_node_list BMAP_NODE_LIST
   ) RETURN INT_LIST IS
     bit_numbers_list INT_LIST := INT_LIST( );
-    byte_values_list BMAP_NODE_LIST;
-    node_number      BINARY_INTEGER;
-    remaining_value  BINARY_INTEGER;
-    bit_pos          BINARY_INTEGER;
-    byte_values_idx  BINARY_INTEGER;
+    byte_values_list PLS_INT_LIST;
+    node_number      PLS_INTEGER;
+    remaining_value  PLS_INTEGER;
+    bit_pos          PLS_INTEGER;
+    byte_values_idx  PLS_INTEGER;
     BEGIN
       node_number := pt_bitmap_node_list.FIRST;
       LOOP
         EXIT WHEN node_number IS NULL;
         bit_pos := C_INDEX_LENGTH * ( node_number - 1 );
 
-        remaining_value := pt_bitmap_node_list( node_number );
-        WHILE remaining_value != 0 LOOP
-          byte_values_idx := MOD( remaining_value, 1024 );
-          IF byte_values_idx > 0 THEN
-            byte_values_list := gc_bit_values_in_byte( byte_values_idx );
-            FOR i IN byte_values_list.FIRST .. byte_values_list.LAST LOOP
-              bit_numbers_list.EXTEND;
-              bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i)+bit_pos;
-            END LOOP;
-          END IF;
-          remaining_value := FLOOR(remaining_value / 1024);
-          bit_pos := bit_pos + 10;
+        byte_values_list := decode_bitmap_node( pt_bitmap_node_list( node_number ) );
+        FOR i IN 1 .. byte_values_list.COUNT LOOP
+          bit_numbers_list.EXTEND;
+          bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i) + bit_pos;
         END LOOP;
         node_number := pt_bitmap_node_list.NEXT( node_number );
       END LOOP;
@@ -231,97 +241,95 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
   PROCEDURE bit_and_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
     pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
   ) IS
-    node_value BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. CARDINALITY( pt_compare_lst ) LOOP
-          PRAGMA INLINE (get_val_from_lst, 'YES');
-          node_value := BITAND(
-              get_val_from_lst(pt_bmap_left( pt_level ), pt_compare_lst( i ) ),
-              get_val_from_lst(pt_bmap_right( pt_level ), pt_compare_lst( i ) )
+      node_value := BITAND( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      IF node_value > 0 THEN
+        pt_bmap_result( p_level )( p_node ) := node_value;
+        IF p_level - 1 > 0 THEN
+          v_child_node_list := decode_bitmap_node( node_value );
+          FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+          bit_and_on_level(
+              pt_bmap_left,
+              pt_bmap_right,
+              p_level - 1,
+              v_child_node_list(i) + C_INDEX_LENGTH * ( p_node - 1 ),
+              pt_bmap_result
           );
-          IF node_value > 0 THEN
-            pt_bmap_result( pt_level )( pt_compare_lst( i ) ) := node_value;
-          END IF;
-        END LOOP;
-        bit_and_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_result( pt_level ) ),
-            pt_bmap_result );
+          END LOOP;
+        END IF;
       END IF;
     END bit_and_on_level;
 
   PROCEDURE bit_or_on_level(
     pt_bmap_left   IN            BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
     pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
   ) IS
-    node_value  BINARY_INTEGER;
-    v_left_val  BINARY_INTEGER;
-    v_right_val BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. CARDINALITY( pt_compare_lst ) LOOP
-          BEGIN
-            PRAGMA INLINE (get_val_from_lst, 'YES');
-            v_left_val := get_val_from_lst( pt_bmap_left( pt_level ), pt_compare_lst( i ) );
-            PRAGMA INLINE (get_val_from_lst, 'YES');
-            v_right_val := get_val_from_lst( pt_bmap_right( pt_level ), pt_compare_lst( i ) );
-            PRAGMA INLINE (bitor, 'YES');
-            node_value := bitor( v_left_val, v_right_val );
-            IF node_value > 0 THEN
-              pt_bmap_result( pt_level )( pt_compare_lst( i ) ) := node_value;
-            END IF;
-          END;
-        END LOOP;
-        bit_or_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_result( pt_level ) ),
-            pt_bmap_result );
+      IF NOT pt_bmap_left( p_level ).EXISTS( p_node ) THEN
+        node_value := pt_bmap_right( p_level )( p_node );
+      ELSIF NOT pt_bmap_right( p_level ).EXISTS( p_node ) THEN
+        node_value := pt_bmap_left( p_level )( p_node );
+      ELSE
+        PRAGMA INLINE (bitor, 'YES');
+        node_value := bitor( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      END IF;
+      IF node_value > 0 THEN
+        pt_bmap_result( p_level )( p_node ) := node_value;
+        IF p_level -1 > 0 THEN
+          v_child_node_list := decode_bitmap_node( node_value );
+          FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+            bit_or_on_level(
+                pt_bmap_left,
+                pt_bmap_right,
+                p_level - 1,
+                v_child_node_list(i) + C_INDEX_LENGTH * ( p_node - 1 ),
+                pt_bmap_result
+            );
+          END LOOP;
+        END IF;
       END IF;
     END bit_or_on_level;
 
   PROCEDURE bit_minus_on_level(
     pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
     pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER
   ) IS
-    node_value  BINARY_INTEGER;
-    v_left_val  BINARY_INTEGER;
-    v_right_val BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
+    i                 PLS_INTEGER;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. pt_bmap_left( pt_level ).COUNT LOOP
-          BEGIN
-            v_left_val := pt_bmap_left( pt_level )( pt_compare_lst( i ) );
-            v_right_val := pt_bmap_right( pt_level )( pt_compare_lst( i ) );
-            node_value := v_left_val - BITAND(v_left_val, v_right_val);
-            IF node_value > 0 THEN
-              pt_bmap_left( pt_level )( pt_compare_lst( i ) ) := node_value;
-            ELSE
-              pt_bmap_left( pt_level ).DELETE( pt_compare_lst( i ) );
-            END IF;
-          EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
-            NULL;
-          END;
+      node_value := pt_bmap_left( p_level )( p_node ) - BITAND( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      IF p_level - 1 > 0 THEN
+        v_child_node_list := decode_bitmap_node( pt_bmap_left( p_level )( p_node ) );
+        FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+          bit_minus_on_level(
+              pt_bmap_left,
+              pt_bmap_right,
+              p_level - 1,
+              v_child_node_list(i) + C_INDEX_LENGTH * ( p_node - 1 )
+          );
         END LOOP;
-        bit_minus_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_left( pt_level ) ) );
       END IF;
+      IF node_value > 0 THEN
+        pt_bmap_left( p_level )( p_node ) := node_value;
+      ELSE
+        pt_bmap_left( p_level ).DELETE( p_node );
+      END IF;
+    EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
+      NULL;
     END bit_minus_on_level;
 
   FUNCTION bit_and(
@@ -340,7 +348,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
           pt_bmap_left,
           pt_bmap_right,
           C_INDEX_DEPTH,
-          INT_LIST( 1 ),
+          1,
           result_bmap );
       RETURN result_bmap;
     END bit_and;
@@ -361,7 +369,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
           pt_bmap_left,
           pt_bmap_right,
           C_INDEX_DEPTH,
-          INT_LIST( 1 ),
+          1,
           result_bmap );
       RETURN result_bmap;
     END bit_or;
@@ -377,11 +385,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
          pt_bmap_right.COUNT = 0 THEN
         RETURN result_bmap;
       END IF;
-      bit_minus_on_level(
-          result_bmap,
-          pt_bmap_right,
-          C_INDEX_DEPTH,
-          INT_LIST( 1 ));
+      bit_minus_on_level( result_bmap, pt_bmap_right, C_INDEX_DEPTH, 1 );
       RETURN result_bmap;
     END bit_minus;
 

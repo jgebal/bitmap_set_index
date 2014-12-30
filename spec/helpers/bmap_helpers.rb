@@ -41,7 +41,7 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute(
         <<-SQL
       CREATE OR REPLACE FUNCTION add_bit_list_to_bitmap_test(pt_bit_numbers_list INT_LIST, pt_bit_map_to_build INT_LIST) RETURN INT_LIST IS
-        bit_map BMAP_LEVEL_LIST;
+        bit_map bmap_builder.BMAP_LEVEL_LIST;
       BEGIN
         bit_map := bmap_builder.encode_bitmap( pt_bit_map_to_build );
         bmap_builder.add_bit_list_to_bitmap( pt_bit_numbers_list, bit_map );

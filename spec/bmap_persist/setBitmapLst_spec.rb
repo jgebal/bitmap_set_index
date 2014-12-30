@@ -28,10 +28,8 @@ describe 'should set bitmap list for given bitmap key' do
     resultRowsCount.should == rowsCount
   end
 
-  [
-    encode_bitmap(nil), nil
-  ].each do |bitmap|
-    it "should delete record if bitmap list is #{bitmap.nil? ? 'null' : 'empty'} for existing bitmap key" do
+  it "should delete record if bitmap list is NULL or empty for existing bitmap key" do
+    [ encode_bitmap(nil), nil ].each do |bitmap|
       bitmap_key = plsql.bmap_persist.insertBitmapLst(@bmap_value)
       rowsCount = plsql.hierarchical_bitmap_table.select(:count)
 
