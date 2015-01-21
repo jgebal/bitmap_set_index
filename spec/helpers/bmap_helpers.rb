@@ -65,11 +65,11 @@ RSpec.shared_context 'shared bitmap builder' do
   end
 
   after(:all) do
-    plsql.execute('DROP FUNCTION encode_decode_test;')
-    plsql.execute('DROP FUNCTION encode_bitand_test;')
-    plsql.execute('DROP FUNCTION encode_bitor_test;')
-    plsql.execute('DROP FUNCTION add_bit_list_to_bitmap_test;')
-    plsql.execute('DROP FUNCTION encode_bitminus_test;')
+    plsql.execute('DROP FUNCTION encode_decode_test')
+    plsql.execute('DROP FUNCTION encode_bitand_test')
+    plsql.execute('DROP FUNCTION encode_bitor_test')
+    plsql.execute('DROP FUNCTION add_bit_list_to_bitmap_test')
+    plsql.execute('DROP FUNCTION encode_bitminus_test')
   end
 
   def encode_and_decode_bitmap(bit_number_list)
