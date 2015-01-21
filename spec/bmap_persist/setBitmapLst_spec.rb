@@ -8,14 +8,14 @@ describe 'should set bitmap list for given bitmap key' do
 
   it 'should insert new record if bitmap key is null' do
     bitmap_key = nil
-    affectedRows = nil
+    affected_rows = nil
 
-    plsql.bmap_persist.setBitmapLst(bitmap_key, @bmap_value, affectedRows).should == { :pi_bitmap_key => plsql.hierarchical_bitmap_key.currval, :pio_affected_rows => nil }
+    plsql.bmap_persist.setBitmapLst(bitmap_key, @bmap_value, affected_rows).should == { :pi_bitmap_key => plsql.hierarchical_bitmap_key.currval, :pio_affected_rows => nil }
   end
 
   it 'should update existing record if bitmap key is given' do
     bitmap_key = plsql.bmap_persist.insertBitmapLst(@bmap_value)
-    rowsCount = plsql.hierarchical_bitmap_table.select(:count)
+    rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
     tmp_bmap_value = encode_bitmap(5)
 
@@ -23,23 +23,23 @@ describe 'should set bitmap list for given bitmap key' do
 
     plsql.bmap_persist.getBitmapLst(bitmap_key).should == tmp_bmap_value
 
-    resultRowsCount = plsql.hierarchical_bitmap_table.select(:count)
+    result_rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
-    resultRowsCount.should == rowsCount
+    result_rows_count.should == rows_count
   end
 
   it "should delete record if bitmap list is NULL or empty for existing bitmap key" do
     [ encode_bitmap(nil), nil ].each do |bitmap|
       bitmap_key = plsql.bmap_persist.insertBitmapLst(@bmap_value)
-      rowsCount = plsql.hierarchical_bitmap_table.select(:count)
+      rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
       plsql.bmap_persist.setBitmapLst(bitmap_key, bitmap, nil).should == { :pi_bitmap_key => bitmap_key, :pio_affected_rows => 1 }
 
       plsql.bmap_persist.getBitmapLst(bitmap_key).should be_nil
 
-      resultRowsCount = plsql.hierarchical_bitmap_table.select(:count)
+      result_rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
-      resultRowsCount.should == rowsCount - 1
+      result_rows_count.should == rows_count - 1
     end
   end
 

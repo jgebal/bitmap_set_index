@@ -1,7 +1,8 @@
 @@../sources/types/mapping_key_list.tps
 @@../sources/types/int_list.tps
-@@../sources/types/bmap_node_list.tps
-@@../sources/types/bmap_level_list.tps
+@@../sources/types/storage_bmap_node.tps
+@@../sources/types/storage_bmap_node_list.tps
+@@../sources/types/storage_bmap_level_list.tps
 
 @@create_hierarchical_bitmap_sequence.sql
 @@create_hierarchical_bitmap_table.sql

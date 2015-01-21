@@ -6,17 +6,19 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
   include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if empty list parameter given' do
-    encode_bitmap( nil ).should == []
+    encode_and_decode_bitmap( nil ).should == []
   end
 
-  it 'should ignore if NULL parameter present on list' do
-    result = encode_bitmap(1, nil, 3)
-    result.should == [[5],[1],[1],[1],[1]]
+  it 'should ignore NULL values present on list of bits' do
+    bit_list = [1,nil,3]
+    result = encode_and_decode_bitmap(bit_list)
+    result.should == [1,3]
   end
 
   it 'should return a bitmap for given parameters' do
-    result = encode_bitmap(1,2,3,4)
-    result.should == [[15],[1],[1],[1],[1]]
+    bit_list = [1, 2, 3, 4]
+    result = encode_and_decode_bitmap(bit_list)
+    result.should == bit_list
   end
 
   it 'should fail if bit number is exceeds maximum allowed number' do
@@ -27,34 +29,8 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
 
   it 'should not fail if bit number is equal to maximum allowed number' do
     expect{
-      encode_bitmap(@max_bit_number)
+      encode_and_decode_bitmap([@max_bit_number])
     }.not_to raise_exception
-  end
-
-  it 'should create bitmap with multiple segments on first two levels' do
-    result = encode_bitmap( 1, @bits_in_segment**2+1 )
-    result.should == [ ([1,1]),[1,1],[3],[1],[1]]
-  end
-
-  it 'should create bitmap with multiple segments on different levels' do
-    result = encode_bitmap( set_bit_in_segment(1,1), set_bit_in_segment(3,5), set_bit_in_segment(2,10) )
-    result.should == [ [1,4,2], [(1 + 2**4 + 2**9)],[1],[1],[1]]
-  end
-
-  it 'should create bitmap with second segment set on second level' do
-    result = encode_bitmap(set_bit_in_segment(1,2))
-    result.should == [ [1],[2],[1],[1],[1]]
-  end
-
-  it 'should create bitmap with last segment fully set' do
-    result = encode_bitmap( (1..@bits_in_segment).to_a)
-    result.should == [ [(2**@bits_in_segment)-1],[1],[1],[1],[1]]
-  end
-
-  it 'should create bitmap with last segment set' do
-    result = encode_bitmap( ((@max_bit_number-(@bits_in_segment-1))..@max_bit_number).to_a )
-    last_element = (2**(@bits_in_segment-1))
-    result.should == [ [(2**@bits_in_segment)-1],[last_element],[last_element],[last_element],[last_element]]
   end
 
 end
