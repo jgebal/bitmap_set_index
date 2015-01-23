@@ -47,8 +47,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION insertBitmapLst(
     pt_bitmap_list BMAP_LEVEL_LIST
-  ) RETURN INTEGER
-  IS
+  ) RETURN INTEGER IS
     bitmap_key INTEGER;
     bmap_anydata ANYDATA;
     BEGIN
@@ -66,8 +65,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION getBitmapLst(
     pi_bitmap_key INTEGER
-  ) RETURN BMAP_LEVEL_LIST
-  IS
+  ) RETURN BMAP_LEVEL_LIST IS
     bmap_lst     STORAGE_BMAP_LEVEL_LIST;
     bmap_anydata ANYDATA;
     is_ok        PLS_INTEGER;
@@ -94,8 +92,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
   FUNCTION updateBitmapLst(
     pi_bitmap_key  INTEGER,
     pt_bitmap_list BMAP_LEVEL_LIST
-  ) RETURN INTEGER
-  IS
+  ) RETURN INTEGER IS
     bmap_anydata ANYDATA;
     result INTEGER;
     BEGIN
@@ -114,8 +111,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION deleteBitmapLst(
     pi_bitmap_key INTEGER
-  ) RETURN INTEGER
-  IS
+  ) RETURN INTEGER IS
     result INTEGER;
     BEGIN
       IF pi_bitmap_key IS NULL THEN
@@ -130,21 +126,21 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
       RETURN result;
     END deleteBitmapLst;
 
-  PROCEDURE setBitmapLst(
-    pi_bitmap_key     IN OUT INTEGER,
-    pt_bitmap_list           BMAP_LEVEL_LIST,
-    pio_affected_rows OUT    INTEGER
-  )
-  IS
+  FUNCTION setBitmapLst(
+    pio_bitmap_key IN OUT INTEGER,
+    pt_bitmap_list BMAP_LEVEL_LIST
+  ) RETURN INTEGER IS
+    rows_affected INTEGER;
     BEGIN
-      IF pi_bitmap_key IS NULL THEN
-        pi_bitmap_key := insertBitmapLst( pt_bitmap_list );
+      IF pio_bitmap_key IS NULL THEN
+        pio_bitmap_key := insertBitmapLst( pt_bitmap_list );
       ELSE
-        pio_affected_rows := updateBitmapLst( pi_bitmap_key, pt_bitmap_list );
-        IF pio_affected_rows = -1 THEN
-          pio_affected_rows := deleteBitmapLst( pi_bitmap_key );
+        rows_affected := updateBitmapLst( pio_bitmap_key, pt_bitmap_list );
+        IF rows_affected = -1 THEN
+          rows_affected := deleteBitmapLst( pio_bitmap_key );
         END IF;
       END IF;
+      RETURN rows_affected;
     END setBitmapLst;
 
 END bmap_persist;

@@ -1,42 +1,45 @@
 require_relative '../spec_helper'
 
 describe 'should update bitmap list to bitmap table' do
+
+  include_context 'shared bitmap builder'
+
   before(:each) do
-    @bmap_value = encode_bitmap([1])
+    @bmap_values_to_encode = [1]
   end
 
   it 'should update record to table' do
-    key_id = plsql.bmap_persist.insertBitmapLst(@bmap_value)
+    key_id = encode_and_insert_bitmap(@bmap_values_to_encode)
 
-    plsql.bmap_persist.updateBitmapLst(key_id, @bmap_value).should == 1
+    encode_and_update_bitmap(key_id, @bmap_values_to_encode).should == 1
   end
 
   it 'should update not existing key' do
-    plsql.bmap_persist.updateBitmapLst(0, @bmap_value).should == 0
+    encode_and_update_bitmap(0, @bmap_values_to_encode).should == 0
   end
 
   it 'should not update records when bitmap key is null' do
-    plsql.bmap_persist.updateBitmapLst(nil, @bmap_value).should == 0
+    encode_and_update_bitmap(nil, @bmap_values_to_encode).should == 0
   end
 
   it 'should return -1 when bitmap list is null' do
-    key_id = plsql.bmap_persist.insertBitmapLst(@bmap_value)
+    key_id = encode_and_insert_bitmap(@bmap_values_to_encode)
 
-    plsql.bmap_persist.updateBitmapLst(key_id, nil).should == -1
+    encode_and_update_bitmap(key_id, nil).should == -1
   end
 
   it 'should return -1 when bitmap list is empty' do
-    key_id = plsql.bmap_persist.insertBitmapLst(@bmap_value)
+    key_id = encode_and_insert_bitmap(@bmap_values_to_encode)
 
-    plsql.bmap_persist.updateBitmapLst(key_id, encode_bitmap([])).should == -1
+    encode_and_update_bitmap(key_id, []).should == -1
   end
 
   it 'should modify bitmap in bitmap table' do
-    key_id = plsql.bmap_persist.insertBitmapLst(@bmap_value)
-    tmp_bmap_value = encode_bitmap([5])
+    key_id = encode_and_insert_bitmap(@bmap_values_to_encode)
+    tmp_bmap_value = [5]
 
-    plsql.bmap_persist.updateBitmapLst(key_id, tmp_bmap_value)
+    encode_and_update_bitmap(key_id, tmp_bmap_value)
 
-    plsql.bmap_persist.getBitmapLst(key_id).should == tmp_bmap_value
+    select_and_decode_bitmap(key_id).should == tmp_bmap_value
   end
 end

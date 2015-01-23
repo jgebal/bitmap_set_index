@@ -34,11 +34,10 @@ CREATE OR REPLACE PACKAGE bmap_persist AS
     pi_bitmap_key INTEGER
   ) RETURN INTEGER;
 
-  PROCEDURE setBitmapLst(
-    pi_bitmap_key     IN OUT INTEGER,
-    pt_bitmap_list           BMAP_LEVEL_LIST,
-    pio_affected_rows OUT    INTEGER
-  );
+  FUNCTION setBitmapLst(
+    pio_bitmap_key IN OUT INTEGER,
+    pt_bitmap_list BMAP_LEVEL_LIST
+  ) RETURN INTEGER;
 
 END bmap_persist;
 /

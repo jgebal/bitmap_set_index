@@ -58,9 +58,23 @@ RSpec.shared_context 'shared bitmap builder' do
     SQL
 
     plsql.execute <<-SQL
-      CREATE OR REPLACE FUNCTION ancode_and_insert_bitmap( pt_bit_numbers_list INT_LIST ) RETURN INTEGER IS
+      CREATE OR REPLACE FUNCTION encode_and_insert_bitmap( pt_bit_numbers_list INT_LIST ) RETURN INTEGER IS
       BEGIN
         RETURN bmap_persist.insertBitmapLst( bmap_builder.encode_bitmap( pt_bit_numbers_list ) );
+      END;
+    SQL
+
+    plsql.execute <<-SQL
+      CREATE OR REPLACE FUNCTION encode_and_update_bitmap( key_id INTEGER, pt_bit_numbers_list INT_LIST ) RETURN INTEGER IS
+      BEGIN
+        RETURN bmap_persist.updateBitmapLst( key_id, bmap_builder.encode_bitmap( pt_bit_numbers_list ) );
+      END;
+    SQL
+
+    plsql.execute <<-SQL
+      CREATE OR REPLACE FUNCTION encode_and_set_bitmap( pio_bitmap_key IN OUT INTEGER, pt_bit_numbers_list INT_LIST ) RETURN INTEGER IS
+      BEGIN
+        RETURN bmap_persist.setBitmapLst( pio_bitmap_key, bmap_builder.encode_bitmap( pt_bit_numbers_list ) );
       END;
     SQL
 
@@ -80,7 +94,8 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute('DROP FUNCTION encode_bitor_test')
     plsql.execute('DROP FUNCTION add_bit_list_to_bitmap_test')
     plsql.execute('DROP FUNCTION encode_bitminus_test')
-    plsql.execute('DROP FUNCTION ancode_and_insert_bitmap')
+    plsql.execute('DROP FUNCTION encode_and_insert_bitmap')
+    plsql.execute('DROP FUNCTION encode_and_update_bitmap')
     plsql.execute('DROP FUNCTION select_and_decode_bitmap')
   end
 
@@ -105,7 +120,15 @@ RSpec.shared_context 'shared bitmap builder' do
   end
 
   def encode_and_insert_bitmap(bit_number_list)
-    plsql.ancode_and_insert_bitmap(bit_number_list)
+    plsql.encode_and_insert_bitmap(bit_number_list)
+  end
+
+  def encode_and_update_bitmap(key_id, bit_number_list)
+    plsql.encode_and_update_bitmap(key_id, bit_number_list)
+  end
+
+  def encode_and_set_bitmap(key_id, bit_number_list)
+    plsql.encode_and_set_bitmap(key_id, bit_number_list)
   end
 
   def select_and_decode_bitmap(bitmap_key)

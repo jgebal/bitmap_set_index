@@ -4,7 +4,7 @@ default:
   username: usr
   password: usr
   database: xe
-  host: 192.168.56.101
+  host: localhost
   port: 1521
 
 # Add other connection if needed.
