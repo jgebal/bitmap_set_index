@@ -13,14 +13,14 @@ describe 'should save bitmap list to bitmap table' do
 
     result = plsql.hierarchical_bitmap_table.select(:count)
 
-    result.should == cnt + 1
+    expect(result).to eq(cnt + 1)
   end
 
   it 'should return 0 bitmap key if bitmap list is empty' do
-    encode_and_insert_bitmap([]).should == 0
+    expect(encode_and_insert_bitmap([])).to eq(0)
   end
 
   it 'should return 0 bitmap key null' do
-    encode_and_insert_bitmap(nil).should == 0
+    expect(encode_and_insert_bitmap(nil)).to eq(0)
   end
 end

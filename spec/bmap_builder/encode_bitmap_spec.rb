@@ -6,19 +6,19 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
   include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if empty list parameter given' do
-    encode_and_decode_bitmap( nil ).should == []
+    expect(encode_and_decode_bitmap( nil )).to eq([])
   end
 
   it 'should ignore NULL values present on list of bits' do
     bit_list = [1,nil,3]
     result = encode_and_decode_bitmap(bit_list)
-    result.should == [1,3]
+    expect(result).to eq([1,3])
   end
 
   it 'should return a bitmap for given parameters' do
     bit_list = [1, 2, 3, 4]
     result = encode_and_decode_bitmap(bit_list)
-    result.should == bit_list
+    expect(result).to eq(bit_list)
   end
 
   it 'should fail if bit number is exceeds maximum allowed number' do

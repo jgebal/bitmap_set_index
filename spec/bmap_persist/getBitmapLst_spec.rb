@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
 require_relative '../helpers/bmap_helpers'
 
-describe 'should get bitmap list from bitmap table for given bitmap key' do
+describe 'get bitmap list from bitmap table for given bitmap key' do
 
   include_context 'shared bitmap builder'
 
@@ -11,19 +11,19 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
 
     result = select_and_decode_bitmap(bitmap_key)
 
-    result.should == bitmap
+    expect(result).to eq(bitmap)
   end
 
   it 'should return null if bmap_key is null' do
 
     result = select_and_decode_bitmap(nil)
 
-    result.should ==[]
+    expect(result).to eq([])
   end
 
   it 'should return null if bmap_key not exists' do
     bitmap_key = plsql.select_one('select NVL(max(bitmap_key), 0) from hierarchical_bitmap_table')
 
-    select_and_decode_bitmap(bitmap_key+1).should ==[]
+    expect(select_and_decode_bitmap(bitmap_key+1)).to eq([])
   end
 end
