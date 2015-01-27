@@ -1,29 +1,16 @@
 SET SERVEROUPTUT ON;
 SET TIMING ON;
 
-CREATE OR REPLACE FUNCTION bmap_list_generator(p_bits INTEGER, p_density INTEGER) RETURN INT_LIST PIPELINED IS
-  v_rows INTEGER := p_bits*p_density;
-  i      INTEGER := 1;
-  BEGIN
-    LOOP
-      PIPE ROW(TRUNC(i/p_density));
-      EXIT WHEN i > v_rows;
-      i := i + 1;
-    END LOOP;
-    RETURN;
-  END bmap_list_generator;
-/
-
 DECLARE
   a            SIMPLE_INTEGER := 0;
-  bit_map      bmap_builder.BMAP_LEVEL_LIST;
-  result       bmap_builder.BMAP_LEVEL_LIST;
+  bit_map      bmap_builder.BMAP_SEGMENT;
+  result       bmap_builder.BMAP_SEGMENT;
   storage_bitmap STORAGE_BMAP_LEVEL_LIST;
   int_lst      INT_LIST;
   t            NUMBER;
   loops        SIMPLE_INTEGER := 1;
-  bmap_density NUMBER := 1 / 2;
-  BITS         INTEGER := 1000000;
+  bmap_density NUMBER := 1;
+  BITS         INTEGER := 50000;
   x            INTEGER;
 BEGIN
 
@@ -95,4 +82,3 @@ BEGIN
 END;
 /
 
-DROP FUNCTION bmap_list_generator;

@@ -9,51 +9,50 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
 --PRIVATE SPECIFICATIONS
 
-  ge_subscript_beyond_count EXCEPTION;
-  PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
+    ge_subscript_beyond_count EXCEPTION;
+PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
 
-  gc_bit_values_in_byte    CONSTANT BMAP_LEVEL_LIST := init_bit_values_in_byte();
+  gc_bit_values_in_byte    CONSTANT BMAP_SEGMENT := init_bit_values_in_byte();
 
   PROCEDURE bit_and_on_level(
-    pt_bmap_left   IN            BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
-    pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bmap_left   IN            BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
+    pt_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   );
 
   PROCEDURE bit_or_on_level(
-    pt_bmap_left   IN            BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
-    pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bmap_left   IN            BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
+    pt_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   );
 
   PROCEDURE bit_minus_on_level(
-    pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST
+    pt_bmap_left   IN OUT NOCOPY BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER
   );
 
   FUNCTION get_val_from_lst(
-    p_val_lst IN BMAP_NODE_LIST,
-    p_pos     IN BINARY_INTEGER
-  ) RETURN BINARY_INTEGER DETERMINISTIC;
+    p_val_lst IN BMAP_SEGMENT_LEVEL,
+    p_pos     IN PLS_INTEGER
+  ) RETURN PLS_INTEGER DETERMINISTIC;
 
 --IMPLEMENTATIONS
 
-  PROCEDURE init( pt_bitmap_tree IN OUT NOCOPY BMAP_LEVEL_LIST ) IS
+  PROCEDURE init_if_needed( pt_bitmap_tree IN OUT NOCOPY BMAP_SEGMENT ) IS
+    x BMAP_SEGMENT_LEVEL;
     BEGIN
-      pt_bitmap_tree := BMAP_LEVEL_LIST( );
-      pt_bitmap_tree.EXTEND( C_INDEX_DEPTH );
-      FOR i IN 1 .. C_INDEX_DEPTH LOOP
-        pt_bitmap_tree( i ) := BMAP_NODE_LIST( );
-        pt_bitmap_tree( i ).EXTEND( CEIL( C_MAX_BITS / POWER( C_INDEX_LENGTH, i ) ) );
-        pt_bitmap_tree( i ).DELETE( 1, CEIL( C_MAX_BITS / POWER( C_INDEX_LENGTH, i ) ) );
-      END LOOP;
-    END init;
+      IF pt_bitmap_tree IS NULL OR pt_bitmap_tree.COUNT = 0 THEN
+        FOR i IN 1 .. C_SEGMENT_HEIGHT LOOP
+          pt_bitmap_tree( i ) := x;
+        END LOOP;
+      END IF;
+    END init_if_needed;
 
   FUNCTION bitor(
     p_left IN BINARY_INTEGER,
@@ -64,9 +63,9 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END bitor;
 
   FUNCTION get_val_from_lst(
-    p_val_lst IN BMAP_NODE_LIST,
-    p_pos     IN BINARY_INTEGER
-  ) RETURN BINARY_INTEGER DETERMINISTIC IS
+    p_val_lst IN BMAP_SEGMENT_LEVEL,
+    p_pos     IN PLS_INTEGER
+  ) RETURN PLS_INTEGER DETERMINISTIC IS
     BEGIN
       RETURN p_val_lst(p_pos);
       EXCEPTION WHEN NO_DATA_FOUND THEN
@@ -90,14 +89,14 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END deduplicate_bit_numbers_list;
 
   PROCEDURE assign_bit_in_segment(
-    pt_bitmap_tree_level IN OUT NOCOPY BMAP_NODE_LIST,
-    pi_bit_number        IN            BINARY_INTEGER
+    pt_bitmap_tree_level IN OUT NOCOPY BMAP_SEGMENT_LEVEL,
+    pi_bit_number        IN            INTEGER
   ) IS
-    bit_number_in_segment INTEGER := 0;
+    bit_number_in_segment BINARY_INTEGER := 0;
     segment_number        BINARY_INTEGER := 0;
     BEGIN
-      bit_number_in_segment := MOD( pi_bit_number - 1, C_INDEX_LENGTH );
-      segment_number := CEIL( pi_bit_number / C_INDEX_LENGTH );
+      bit_number_in_segment := MOD( pi_bit_number - 1, C_ELEMENT_CAPACITY );
+      segment_number := CEIL( pi_bit_number / C_ELEMENT_CAPACITY );
       IF NOT pt_bitmap_tree_level.EXISTS( segment_number ) THEN
         pt_bitmap_tree_level( segment_number ) := POWER( 2, bit_number_in_segment );
       ELSE
@@ -107,7 +106,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END assign_bit_in_segment;
 
   PROCEDURE build_leaf_level(
-    pt_bitmap_node     IN OUT NOCOPY BMAP_NODE_LIST,
+    pt_bitmap_node     IN OUT NOCOPY BMAP_SEGMENT_LEVEL,
     pt_bit_numbers_set IN            INT_LIST
   ) IS
     bit_number_idx INTEGER;
@@ -121,7 +120,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END build_leaf_level;
 
   PROCEDURE build_level(
-    pt_bitmap_tree          IN OUT NOCOPY BMAP_LEVEL_LIST,
+    pt_bitmap_tree          IN OUT NOCOPY BMAP_SEGMENT,
     pi_bit_map_level_number IN            BINARY_INTEGER
   ) IS
     node INTEGER;
@@ -136,19 +135,18 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
   PROCEDURE add_bit_list_to_bitmap(
     pt_bit_numbers_list INT_LIST,
-    pt_bit_map_tree   IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bit_map_tree   IN OUT NOCOPY BMAP_SEGMENT
   ) IS
     bit_numbers_set INT_LIST := INT_LIST( );
+    v_bitmap_node   BMAP_SEGMENT_LEVEL;
     max_bit_number  NUMBER;
     BEGIN
       IF pt_bit_numbers_list IS NULL OR CARDINALITY( pt_bit_numbers_list ) = 0 THEN
         RETURN;
       END IF;
 
-      SELECT
-        MAX( COLUMN_VALUE ) INTO max_bit_number
-      FROM TABLE (pt_bit_numbers_list);
-      IF max_bit_number > C_MAX_BITS THEN
+      SELECT MAX( COLUMN_VALUE ) INTO max_bit_number FROM TABLE (pt_bit_numbers_list);
+      IF max_bit_number > C_SEGMENT_CAPACITY THEN
         RAISE_APPLICATION_ERROR( -20000, 'Index size overflow' );
       END IF;
 
@@ -158,12 +156,10 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
         RETURN;
       END IF;
 
-      IF pt_bit_map_tree IS NULL OR pt_bit_map_tree IS EMPTY THEN
-        init( pt_bit_map_tree );
-      END IF;
+      init_if_needed( pt_bit_map_tree );
 
       build_leaf_level( pt_bit_map_tree( 1 ), bit_numbers_set );
-      FOR bit_map_level_number IN 2 .. C_INDEX_DEPTH LOOP
+      FOR bit_map_level_number IN 2 .. C_SEGMENT_HEIGHT LOOP
         build_level( pt_bit_map_tree, bit_map_level_number );
       END LOOP;
 
@@ -171,51 +167,68 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
   FUNCTION encode_bitmap(
     pt_bit_numbers_list INT_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
-    bit_map_tree    BMAP_LEVEL_LIST := BMAP_LEVEL_LIST( );
+  ) RETURN BMAP_SEGMENT IS
+    bit_map_tree    BMAP_SEGMENT;
     BEGIN
       add_bit_list_to_bitmap(pt_bit_numbers_list, bit_map_tree);
       RETURN bit_map_tree;
     END encode_bitmap;
 
   FUNCTION decode_bitmap(
-    pt_bitmap_tree BMAP_LEVEL_LIST
+    pt_bitmap_tree BMAP_SEGMENT
   ) RETURN INT_LIST IS
     BEGIN
-      IF pt_bitmap_tree IS NULL OR pt_bitmap_tree IS EMPTY THEN
+      IF pt_bitmap_tree IS NULL OR pt_bitmap_tree.COUNT = 0 THEN
         RETURN INT_LIST( );
       END IF;
 
       RETURN decode_bitmap_level( pt_bitmap_tree(1) );
     END decode_bitmap;
 
+  FUNCTION decode_bitmap_node(
+    p_node_value PLS_INTEGER
+  ) RETURN PLS_INT_LIST IS
+    bit_numbers_list PLS_INT_LIST := PLS_INT_LIST( );
+    byte_values_list BMAP_SEGMENT_LEVEL;
+    remaining_value  PLS_INTEGER;
+    bit_pos          PLS_INTEGER := 0;
+    byte_values_idx  PLS_INTEGER;
+    BEGIN
+      remaining_value := p_node_value;
+      WHILE remaining_value != 0 LOOP
+        byte_values_idx := MOD( remaining_value, 1024 );
+        IF byte_values_idx > 0 THEN
+          byte_values_list := gc_bit_values_in_byte( byte_values_idx );
+          FOR i IN byte_values_list.FIRST .. byte_values_list.LAST LOOP
+            bit_numbers_list.EXTEND;
+            bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i)+bit_pos;
+          END LOOP;
+        END IF;
+        remaining_value := FLOOR(remaining_value / 1024);
+        bit_pos := bit_pos + 10;
+      END LOOP;
+      RETURN bit_numbers_list;
+    END decode_bitmap_node;
+
   FUNCTION decode_bitmap_level(
-    pt_bitmap_node_list BMAP_NODE_LIST
+    pt_bitmap_node_list BMAP_SEGMENT_LEVEL
   ) RETURN INT_LIST IS
     bit_numbers_list INT_LIST := INT_LIST( );
-    byte_values_list BMAP_NODE_LIST;
-    node_number      BINARY_INTEGER;
-    remaining_value  BINARY_INTEGER;
-    bit_pos          BINARY_INTEGER;
-    byte_values_idx  BINARY_INTEGER;
+    byte_values_list PLS_INT_LIST;
+    node_number      PLS_INTEGER;
+    remaining_value  PLS_INTEGER;
+    bit_pos          PLS_INTEGER;
+    byte_values_idx  PLS_INTEGER;
     BEGIN
       node_number := pt_bitmap_node_list.FIRST;
       LOOP
         EXIT WHEN node_number IS NULL;
-        bit_pos := C_INDEX_LENGTH * ( node_number - 1 );
+        bit_pos := C_ELEMENT_CAPACITY * ( node_number - 1 );
 
-        remaining_value := pt_bitmap_node_list( node_number );
-        WHILE remaining_value != 0 LOOP
-          byte_values_idx := MOD( remaining_value, 1024 );
-          IF byte_values_idx > 0 THEN
-            byte_values_list := gc_bit_values_in_byte( byte_values_idx );
-            FOR i IN byte_values_list.FIRST .. byte_values_list.LAST LOOP
-              bit_numbers_list.EXTEND;
-              bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i)+bit_pos;
-            END LOOP;
-          END IF;
-          remaining_value := FLOOR(remaining_value / 1024);
-          bit_pos := bit_pos + 10;
+        byte_values_list := decode_bitmap_node( pt_bitmap_node_list( node_number ) );
+        FOR i IN 1 .. byte_values_list.COUNT LOOP
+          bit_numbers_list.EXTEND;
+          bit_numbers_list( bit_numbers_list.LAST ) := byte_values_list(i) + bit_pos;
         END LOOP;
         node_number := pt_bitmap_node_list.NEXT( node_number );
       END LOOP;
@@ -223,166 +236,160 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     END decode_bitmap_level;
 
   PROCEDURE bit_and_on_level(
-    pt_bmap_left   IN            BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
-    pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bmap_left   IN            BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
+    pt_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   ) IS
-    node_value BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. CARDINALITY( pt_compare_lst ) LOOP
-          PRAGMA INLINE (get_val_from_lst, 'YES');
-          node_value := BITAND(
-              get_val_from_lst(pt_bmap_left( pt_level ), pt_compare_lst( i ) ),
-              get_val_from_lst(pt_bmap_right( pt_level ), pt_compare_lst( i ) )
-          );
-          IF node_value > 0 THEN
-            pt_bmap_result( pt_level )( pt_compare_lst( i ) ) := node_value;
-          END IF;
-        END LOOP;
-        bit_and_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_result( pt_level ) ),
-            pt_bmap_result );
+      node_value := BITAND( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      IF node_value > 0 THEN
+        pt_bmap_result( p_level )( p_node ) := node_value;
+        IF p_level - 1 > 0 THEN
+          v_child_node_list := decode_bitmap_node( node_value );
+          FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+            bit_and_on_level(
+                pt_bmap_left,
+                pt_bmap_right,
+                p_level - 1,
+                v_child_node_list(i) + C_ELEMENT_CAPACITY * ( p_node - 1 ),
+                pt_bmap_result
+            );
+          END LOOP;
+        END IF;
       END IF;
     END bit_and_on_level;
 
   PROCEDURE bit_or_on_level(
-    pt_bmap_left   IN            BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST,
-    pt_bmap_result IN OUT NOCOPY BMAP_LEVEL_LIST
+    pt_bmap_left   IN            BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER,
+    pt_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   ) IS
-    node_value  BINARY_INTEGER;
-    v_left_val  BINARY_INTEGER;
-    v_right_val BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. CARDINALITY( pt_compare_lst ) LOOP
-          BEGIN
-            PRAGMA INLINE (get_val_from_lst, 'YES');
-            v_left_val := get_val_from_lst( pt_bmap_left( pt_level ), pt_compare_lst( i ) );
-            PRAGMA INLINE (get_val_from_lst, 'YES');
-            v_right_val := get_val_from_lst( pt_bmap_right( pt_level ), pt_compare_lst( i ) );
-            PRAGMA INLINE (bitor, 'YES');
-            node_value := bitor( v_left_val, v_right_val );
-            IF node_value > 0 THEN
-              pt_bmap_result( pt_level )( pt_compare_lst( i ) ) := node_value;
-            END IF;
-          END;
-        END LOOP;
-        bit_or_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_result( pt_level ) ),
-            pt_bmap_result );
+      IF NOT pt_bmap_left( p_level ).EXISTS( p_node ) THEN
+        node_value := pt_bmap_right( p_level )( p_node );
+      ELSIF NOT pt_bmap_right( p_level ).EXISTS( p_node ) THEN
+        node_value := pt_bmap_left( p_level )( p_node );
+      ELSE
+        PRAGMA INLINE (bitor, 'YES');
+        node_value := bitor( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      END IF;
+      IF node_value > 0 THEN
+        pt_bmap_result( p_level )( p_node ) := node_value;
+        IF p_level -1 > 0 THEN
+          v_child_node_list := decode_bitmap_node( node_value );
+          FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+            bit_or_on_level(
+                pt_bmap_left,
+                pt_bmap_right,
+                p_level - 1,
+                v_child_node_list(i) + C_ELEMENT_CAPACITY * ( p_node - 1 ),
+                pt_bmap_result
+            );
+          END LOOP;
+        END IF;
       END IF;
     END bit_or_on_level;
 
   PROCEDURE bit_minus_on_level(
-    pt_bmap_left   IN OUT NOCOPY BMAP_LEVEL_LIST,
-    pt_bmap_right  IN            BMAP_LEVEL_LIST,
-    pt_level       IN            BINARY_INTEGER,
-    pt_compare_lst IN            INT_LIST
+    pt_bmap_left   IN OUT NOCOPY BMAP_SEGMENT,
+    pt_bmap_right  IN            BMAP_SEGMENT,
+    p_level        IN            PLS_INTEGER,
+    p_node         IN            PLS_INTEGER
   ) IS
-    node_value  BINARY_INTEGER;
-    v_left_val  BINARY_INTEGER;
-    v_right_val BINARY_INTEGER;
+    node_value        PLS_INTEGER;
+    v_child_node_list PLS_INT_LIST;
+    i                 PLS_INTEGER;
     BEGIN
-      IF pt_level > 0 THEN
-        FOR i IN 1 .. CARDINALITY( pt_bmap_left( pt_level ) ) LOOP
-          BEGIN
-            v_left_val := pt_bmap_left( pt_level )( pt_compare_lst( i ) );
-            v_right_val := pt_bmap_right( pt_level )( pt_compare_lst( i ) );
-            node_value := v_left_val - BITAND(v_left_val, v_right_val);
-            IF node_value > 0 THEN
-              pt_bmap_left( pt_level )( pt_compare_lst( i ) ) := node_value;
-            ELSE
-              pt_bmap_left( pt_level ).DELETE( pt_compare_lst( i ) );
-            END IF;
-          EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
-            NULL;
-          END;
+      node_value := pt_bmap_left( p_level )( p_node ) - BITAND( pt_bmap_left( p_level )( p_node ), pt_bmap_right( p_level )( p_node ) );
+      IF p_level - 1 > 0 THEN
+        v_child_node_list := decode_bitmap_node( pt_bmap_left( p_level )( p_node ) );
+        FOR i IN 1 .. CARDINALITY( v_child_node_list ) LOOP
+          bit_minus_on_level(
+              pt_bmap_left,
+              pt_bmap_right,
+              p_level - 1,
+              v_child_node_list(i) + C_ELEMENT_CAPACITY * ( p_node - 1 )
+          );
         END LOOP;
-        bit_minus_on_level(
-            pt_bmap_left,
-            pt_bmap_right,
-            pt_level - 1,
-            decode_bitmap_level( pt_bmap_left( pt_level ) ) );
       END IF;
+      IF node_value > 0 THEN
+        pt_bmap_left( p_level )( p_node ) := node_value;
+      ELSE
+        pt_bmap_left( p_level ).DELETE( p_node );
+      END IF;
+      EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
+      NULL;
     END bit_minus_on_level;
 
   FUNCTION bit_and(
-    pt_bmap_left  IN BMAP_LEVEL_LIST,
-    pt_bmap_right IN BMAP_LEVEL_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
-    result_bmap   BMAP_LEVEL_LIST := BMAP_LEVEL_LIST( );
+    pt_bmap_left  IN BMAP_SEGMENT,
+    pt_bmap_right IN BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT IS
+    result_bmap   BMAP_SEGMENT;
     bitmap_height BINARY_INTEGER;
     BEGIN
-      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left IS EMPTY OR
-         pt_bmap_right IS EMPTY THEN
+      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left.COUNT = 0 OR
+         pt_bmap_right.COUNT = 0 THEN
         RETURN result_bmap;
       END IF;
-      init( result_bmap );
+      init_if_needed( result_bmap );
       bit_and_on_level(
           pt_bmap_left,
           pt_bmap_right,
-          C_INDEX_DEPTH,
-          INT_LIST( 1 ),
+          C_SEGMENT_HEIGHT,
+          1,
           result_bmap );
       RETURN result_bmap;
     END bit_and;
 
   FUNCTION bit_or(
-    pt_bmap_left  IN BMAP_LEVEL_LIST,
-    pt_bmap_right IN BMAP_LEVEL_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
-    result_bmap   BMAP_LEVEL_LIST := BMAP_LEVEL_LIST( );
+    pt_bmap_left  IN BMAP_SEGMENT,
+    pt_bmap_right IN BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT IS
+    result_bmap   BMAP_SEGMENT;
     bitmap_height BINARY_INTEGER;
     BEGIN
-      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left IS EMPTY OR
-         pt_bmap_right IS EMPTY THEN
+      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left.COUNT = 0 OR
+         pt_bmap_right.COUNT = 0 THEN
         RETURN result_bmap;
       END IF;
-      init( result_bmap );
+      init_if_needed( result_bmap );
       bit_or_on_level(
           pt_bmap_left,
           pt_bmap_right,
-          C_INDEX_DEPTH,
-          INT_LIST( 1 ),
+          C_SEGMENT_HEIGHT,
+          1,
           result_bmap );
       RETURN result_bmap;
     END bit_or;
 
   FUNCTION bit_minus(
-    pt_bmap_left  IN BMAP_LEVEL_LIST,
-    pt_bmap_right IN BMAP_LEVEL_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
-    result_bmap   BMAP_LEVEL_LIST := pt_bmap_left;
+    pt_bmap_left  IN BMAP_SEGMENT,
+    pt_bmap_right IN BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT IS
+    result_bmap   BMAP_SEGMENT := pt_bmap_left;
     bitmap_height BINARY_INTEGER;
     BEGIN
-      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left IS EMPTY OR
-         pt_bmap_right IS EMPTY THEN
+      IF pt_bmap_left IS NULL OR pt_bmap_right IS NULL OR pt_bmap_left.COUNT = 0 OR
+         pt_bmap_right.COUNT = 0 THEN
         RETURN result_bmap;
       END IF;
-      bit_minus_on_level(
-          result_bmap,
-          pt_bmap_right,
-          C_INDEX_DEPTH,
-          INT_LIST( 1 ));
+      bit_minus_on_level( result_bmap, pt_bmap_right, C_SEGMENT_HEIGHT, 1 );
       RETURN result_bmap;
     END bit_minus;
 
 
   FUNCTION get_index_length RETURN INTEGER IS
     BEGIN
-      RETURN C_INDEX_LENGTH;
+      RETURN C_ELEMENT_CAPACITY;
     END;
 
 /**
@@ -396,57 +403,88 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
  * ...
  *  initBitValuesInByte('FF') -> (1,2,3,4,5,6,7,8..., 16)
  */
-  FUNCTION init_bit_values_in_byte RETURN BMAP_LEVEL_LIST
+  FUNCTION init_bit_values_in_byte RETURN BMAP_SEGMENT
   IS
-    v_low_values_in_byte  BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
-    v_high_values_in_byte BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
-    v_result              BMAP_LEVEL_LIST := BMAP_LEVEL_LIST();
+    v_low_values_in_byte  BMAP_SEGMENT;
+    v_high_values_in_byte BMAP_SEGMENT;
+    v_result              BMAP_SEGMENT;
     idx                   BINARY_INTEGER;
-    BEGIN
-      v_low_values_in_byte.EXTEND(32);
-      v_high_values_in_byte.EXTEND(32);
-      v_result.EXTEND(1023);
-      v_low_values_in_byte( 1) := BMAP_NODE_LIST(1);
-      v_low_values_in_byte( 2) := BMAP_NODE_LIST(2);
-      v_low_values_in_byte( 3) := BMAP_NODE_LIST(1,2);
-      v_low_values_in_byte( 4) := BMAP_NODE_LIST(3);
-      v_low_values_in_byte( 5) := BMAP_NODE_LIST(1,3);
-      v_low_values_in_byte( 6) := BMAP_NODE_LIST(2,3);
-      v_low_values_in_byte( 7) := BMAP_NODE_LIST(1,2,3);
-      v_low_values_in_byte( 8) := BMAP_NODE_LIST(4);
-      v_low_values_in_byte( 9) := BMAP_NODE_LIST(1,4);
-      v_low_values_in_byte(10) := BMAP_NODE_LIST(2,4);
-      v_low_values_in_byte(11) := BMAP_NODE_LIST(1,2,4);
-      v_low_values_in_byte(12) := BMAP_NODE_LIST(3,4);
-      v_low_values_in_byte(13) := BMAP_NODE_LIST(1,3,4);
-      v_low_values_in_byte(14) := BMAP_NODE_LIST(2,3,4);
-      v_low_values_in_byte(15) := BMAP_NODE_LIST(1,2,3,4);
-      v_low_values_in_byte(16) := BMAP_NODE_LIST(5);
-      v_low_values_in_byte(17) := BMAP_NODE_LIST(1,5);
-      v_low_values_in_byte(18) := BMAP_NODE_LIST(2,5);
-      v_low_values_in_byte(19) := BMAP_NODE_LIST(1,2,5);
-      v_low_values_in_byte(20) := BMAP_NODE_LIST(3,5);
-      v_low_values_in_byte(21) := BMAP_NODE_LIST(1,3,5);
-      v_low_values_in_byte(22) := BMAP_NODE_LIST(2,3,5);
-      v_low_values_in_byte(23) := BMAP_NODE_LIST(1,2,3,5);
-      v_low_values_in_byte(24) := BMAP_NODE_LIST(4,5);
-      v_low_values_in_byte(25) := BMAP_NODE_LIST(1,4,5);
-      v_low_values_in_byte(26) := BMAP_NODE_LIST(2,4,5);
-      v_low_values_in_byte(27) := BMAP_NODE_LIST(1,2,4,5);
-      v_low_values_in_byte(28) := BMAP_NODE_LIST(3,4,5);
-      v_low_values_in_byte(29) := BMAP_NODE_LIST(1,3,4,5);
-      v_low_values_in_byte(30) := BMAP_NODE_LIST(2,3,4,5);
-      v_low_values_in_byte(31) := BMAP_NODE_LIST(1,2,3,4,5);
-      v_low_values_in_byte(32) := BMAP_NODE_LIST();
-      FOR h IN 1 .. CARDINALITY( v_high_values_in_byte ) LOOP
-        v_high_values_in_byte(h) := v_low_values_in_byte(h);
-        FOR x IN 1 .. CARDINALITY( v_high_values_in_byte( h ) ) LOOP
-          v_high_values_in_byte( h )( x ) := v_low_values_in_byte( h )( x ) + 5;
+    FUNCTION get_bmap_node_list(p_lst int_list) RETURN BMAP_SEGMENT_LEVEL IS
+      v_res BMAP_SEGMENT_LEVEL;
+      BEGIN
+        FOR i IN 1 .. p_lst.COUNT loop
+          v_res(i) := p_lst(i);
         END LOOP;
-        FOR l IN 1 .. CARDINALITY( v_low_values_in_byte ) LOOP
+        RETURN v_res;
+      END get_bmap_node_list;
+    FUNCTION multiset_union_all(p_left BMAP_SEGMENT_LEVEL, p_right BMAP_SEGMENT_LEVEL) RETURN BMAP_SEGMENT_LEVEL IS
+      v_res BMAP_SEGMENT_LEVEL;
+      i PLS_INTEGER;
+      j PLS_INTEGER := 0;
+      BEGIN
+        i := p_left.FIRST;
+        LOOP
+          EXIT WHEN i IS NULL;
+          j := j + 1;
+          v_res(j) := p_left(i);
+          i := p_left.NEXT(i);
+        END LOOP;
+        i := p_right.FIRST;
+        LOOP
+          EXIT WHEN i IS NULL;
+          j := j + 1;
+          v_res(j) := p_right(i);
+          i := p_right.NEXT(i);
+        END LOOP;
+        RETURN v_res;
+      END multiset_union_all;
+    BEGIN
+--       v_low_values_in_byte.EXTEND(32);
+--       v_high_values_in_byte.EXTEND(32);
+--       v_result.EXTEND(1023);
+      v_low_values_in_byte( 1) := get_bmap_node_list(INT_LIST(1));
+      v_low_values_in_byte( 2) := get_bmap_node_list(INT_LIST(2));
+      v_low_values_in_byte( 3) := get_bmap_node_list(INT_LIST(1,2));
+      v_low_values_in_byte( 4) := get_bmap_node_list(INT_LIST(3));
+      v_low_values_in_byte( 5) := get_bmap_node_list(INT_LIST(1,3));
+      v_low_values_in_byte( 6) := get_bmap_node_list(INT_LIST(2,3));
+      v_low_values_in_byte( 7) := get_bmap_node_list(INT_LIST(1,2,3));
+      v_low_values_in_byte( 8) := get_bmap_node_list(INT_LIST(4));
+      v_low_values_in_byte( 9) := get_bmap_node_list(INT_LIST(1,4));
+      v_low_values_in_byte(10) := get_bmap_node_list(INT_LIST(2,4));
+      v_low_values_in_byte(11) := get_bmap_node_list(INT_LIST(1,2,4));
+      v_low_values_in_byte(12) := get_bmap_node_list(INT_LIST(3,4));
+      v_low_values_in_byte(13) := get_bmap_node_list(INT_LIST(1,3,4));
+      v_low_values_in_byte(14) := get_bmap_node_list(INT_LIST(2,3,4));
+      v_low_values_in_byte(15) := get_bmap_node_list(INT_LIST(1,2,3,4));
+      v_low_values_in_byte(16) := get_bmap_node_list(INT_LIST(5));
+      v_low_values_in_byte(17) := get_bmap_node_list(INT_LIST(1,5));
+      v_low_values_in_byte(18) := get_bmap_node_list(INT_LIST(2,5));
+      v_low_values_in_byte(19) := get_bmap_node_list(INT_LIST(1,2,5));
+      v_low_values_in_byte(20) := get_bmap_node_list(INT_LIST(3,5));
+      v_low_values_in_byte(21) := get_bmap_node_list(INT_LIST(1,3,5));
+      v_low_values_in_byte(22) := get_bmap_node_list(INT_LIST(2,3,5));
+      v_low_values_in_byte(23) := get_bmap_node_list(INT_LIST(1,2,3,5));
+      v_low_values_in_byte(24) := get_bmap_node_list(INT_LIST(4,5));
+      v_low_values_in_byte(25) := get_bmap_node_list(INT_LIST(1,4,5));
+      v_low_values_in_byte(26) := get_bmap_node_list(INT_LIST(2,4,5));
+      v_low_values_in_byte(27) := get_bmap_node_list(INT_LIST(1,2,4,5));
+      v_low_values_in_byte(28) := get_bmap_node_list(INT_LIST(3,4,5));
+      v_low_values_in_byte(29) := get_bmap_node_list(INT_LIST(1,3,4,5));
+      v_low_values_in_byte(30) := get_bmap_node_list(INT_LIST(2,3,4,5));
+      v_low_values_in_byte(31) := get_bmap_node_list(INT_LIST(1,2,3,4,5));
+      v_low_values_in_byte(32) := get_bmap_node_list(INT_LIST());
+      FOR h IN 1 .. v_low_values_in_byte.COUNT LOOP
+        v_high_values_in_byte(h) := v_low_values_in_byte(h);
+        FOR x IN 1 .. v_high_values_in_byte( h ).COUNT LOOP
+          v_high_values_in_byte( h )( x ) := v_high_values_in_byte( h )( x ) + 5;
+        END LOOP;
+      END LOOP;
+      FOR h IN 1 .. v_high_values_in_byte.COUNT LOOP
+        FOR l IN 1 .. v_low_values_in_byte.COUNT LOOP
           idx := MOD( h, 32 )*32 + MOD( l, 32 );
           IF idx > 0 THEN
-            v_result( idx ) := v_low_values_in_byte( l ) MULTISET UNION v_high_values_in_byte( h );
+            v_result( idx ) := multiset_union_all( v_low_values_in_byte( l ), v_high_values_in_byte( h ) );
           END IF;
         END LOOP;
       END LOOP;

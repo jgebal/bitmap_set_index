@@ -6,7 +6,7 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
   include_context 'shared bitmap builder'
 
   it 'should return not empty record' do
-    bitmap = [1,2,3,4,5,6,7,8,123,124,125,12345678]
+    bitmap = [1,2,3,4,5,6,7,8,123,124,125,12345]
     bitmap_key =  encode_and_insert_bitmap(bitmap)
 
     result = select_and_decode_bitmap(bitmap_key)

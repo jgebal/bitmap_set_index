@@ -17,7 +17,7 @@ describe 'Convert hierarchical bitmap to list of bit numbers' do
   end
 
   it 'should decode encoded bitmap to a list ' do
-    expected = (1..50000).to_a
+    expected = (1..27000).to_a
     result = encode_and_decode_bitmap( expected )
     result.should == expected
   end

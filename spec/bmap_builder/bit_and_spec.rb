@@ -15,15 +15,15 @@ describe 'Perform BIT AND operation on encoded bitmaps' do
   end
 
   it 'should return common part when bitmaps are different' do
-    left_bits  = [1,2,3,4,30,31,32,140,30000,      128888]
-    right_bits = [1,  3,4,   31,32,140,      35000,128888,2800000]
-    expected   = [1,  3,4,   31,32,140,            128888]
+    left_bits  = [1,2,3,4,30,31,32,140,3000,      12888]
+    right_bits = [1,  3,4,   31,32,140,      3500,12888,25000]
+    expected   = [1,  3,4,   31,32,140,           12888]
     bit_and( left_bits, right_bits ).should == expected
   end
 
   it 'should return empty bitmap when bitmaps have nothing in common' do
-    left_bits  = [1,2,3,4,30,31,32,140,30000,128888]
-    right_bits = [5,6,7,8,29,33,34,141,35000,239999,2800000]
+    left_bits  = [1,2,3,4,30,31,32,140,3000,12888]
+    right_bits = [5,6,7,8,29,33,34,141,3500,23999,25000]
     expected   = []
     bit_and( left_bits, right_bits ).should == expected
   end

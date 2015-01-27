@@ -1,28 +1,15 @@
 SET SERVEROUPTUT ON;
 SET TIMING ON;
 
-CREATE OR REPLACE FUNCTION bmap_list_generator(p_bits INTEGER, p_density INTEGER) RETURN INT_LIST PIPELINED IS
-  v_rows INTEGER := p_bits*p_density;
-  i      INTEGER := 1;
-  BEGIN
-    LOOP
-      PIPE ROW(TRUNC(i/p_density));
-      EXIT WHEN i > v_rows;
-      i := i + 1;
-    END LOOP;
-    RETURN;
-  END bmap_list_generator;
-/
-
 DECLARE
   a            SIMPLE_INTEGER := 0;
-  bit_map      bmap_builder.BMAP_LEVEL_LIST;
-  result       bmap_builder.BMAP_LEVEL_LIST;
+  bit_map      bmap_builder.BMAP_SEGMENT;
+  result       bmap_builder.BMAP_SEGMENT;
   storage_bitmap STORAGE_BMAP_LEVEL_LIST;
   int_lst      INT_LIST;
   t            NUMBER;
   loops        SIMPLE_INTEGER := 1;
-  bmap_density NUMBER := 1/2;
+  bmap_density NUMBER := 1;
   BITS         INTEGER := 1000000;
   x            INTEGER;
 BEGIN
@@ -66,15 +53,21 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE( 'bmap_builder.bit_minus secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
-  storage_bitmap := bmap_persist.convertForStorage(bit_map);
+  FOR i IN 1 .. loops LOOP
+    storage_bitmap := bmap_persist.convertForStorage(bit_map);
+  END LOOP;
   DBMS_OUTPUT.PUT_LINE( 'bmap_persist.convertForStorage secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
-  bit_map := bmap_persist.convertForProcessing(storage_bitmap);
+  FOR i IN 1 .. loops LOOP
+    bit_map := bmap_persist.convertForProcessing(storage_bitmap);
+  END LOOP;
   DBMS_OUTPUT.PUT_LINE( 'bmap_persist.convertForProcessing secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
-  x := bmap_persist.insertBitmapLst(bit_map);
+  FOR i IN 1 .. loops LOOP
+    x := bmap_persist.insertBitmapLst(bit_map);
+  END LOOP;
   DBMS_OUTPUT.PUT_LINE( 'bmap_persist.insertBitmapLst secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   ROLLBACK;

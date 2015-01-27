@@ -8,10 +8,10 @@ ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION convertForStorage(
-    pt_bitmap_list BMAP_LEVEL_LIST
-  ) RETURN STORAGE_BMAP_LEVEL_LIST IS
-    node_list STORAGE_BMAP_NODE_LIST := STORAGE_BMAP_NODE_LIST();
-    level_list STORAGE_BMAP_LEVEL_LIST := STORAGE_BMAP_LEVEL_LIST();
+    pt_bitmap_list BMAP_SEGMENT
+  ) RETURN STOR_BMAP_SEGMENT IS
+    node_list STOR_BMAP_LEVEL := STOR_BMAP_LEVEL();
+    level_list STOR_BMAP_SEGMENT := STOR_BMAP_SEGMENT();
     j PLS_INTEGER;
     BEGIN
       IF NOT (pt_bitmap_list IS NULL OR pt_bitmap_list.COUNT = 0) THEN
@@ -20,7 +20,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
           j := pt_bitmap_list(i).FIRST;
           WHILE j IS NOT NULL LOOP
             node_list.EXTEND;
-            node_list(node_list.LAST) := STORAGE_BMAP_NODE( j, pt_bitmap_list(i)(j) );
+            node_list(node_list.LAST) := STOR_BMAP_NODE( j, pt_bitmap_list(i)(j) );
             j := pt_bitmap_list(i).NEXT( j );
           END LOOP;
           level_list(level_list.LAST) := node_list;
@@ -30,9 +30,9 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     END convertForStorage;
 
   FUNCTION convertForProcessing(
-    pt_bitmap_list STORAGE_BMAP_LEVEL_LIST
-  ) RETURN BMAP_LEVEL_LIST IS
-    level_list BMAP_LEVEL_LIST;
+    pt_bitmap_list STOR_BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT IS
+    level_list BMAP_SEGMENT;
     j PLS_INTEGER;
     BEGIN
       IF NOT (pt_bitmap_list IS NULL OR CARDINALITY(pt_bitmap_list) = 0) THEN
@@ -46,7 +46,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     END convertForProcessing;
 
   FUNCTION insertBitmapLst(
-    pt_bitmap_list BMAP_LEVEL_LIST
+    pt_bitmap_list BMAP_SEGMENT
   ) RETURN INTEGER IS
     bitmap_key INTEGER;
     bmap_anydata ANYDATA;
@@ -65,8 +65,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION getBitmapLst(
     pi_bitmap_key INTEGER
-  ) RETURN BMAP_LEVEL_LIST IS
-    bmap_lst     STORAGE_BMAP_LEVEL_LIST;
+  ) RETURN BMAP_SEGMENT IS
+    bmap_lst     STOR_BMAP_SEGMENT;
     bmap_anydata ANYDATA;
     is_ok        PLS_INTEGER;
     BEGIN
@@ -91,7 +91,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION updateBitmapLst(
     pi_bitmap_key  INTEGER,
-    pt_bitmap_list BMAP_LEVEL_LIST
+    pt_bitmap_list BMAP_SEGMENT
   ) RETURN INTEGER IS
     bmap_anydata ANYDATA;
     result INTEGER;
@@ -128,7 +128,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
   FUNCTION setBitmapLst(
     pio_bitmap_key IN OUT INTEGER,
-    pt_bitmap_list BMAP_LEVEL_LIST
+    pt_bitmap_list BMAP_SEGMENT
   ) RETURN INTEGER IS
     rows_affected INTEGER;
     BEGIN

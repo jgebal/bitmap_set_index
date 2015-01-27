@@ -3,7 +3,7 @@ RSpec.shared_context 'shared bitmap builder' do
   before(:all) do
     plsql.dbms_output_stream = STDOUT
     @bits_in_segment = plsql.bmap_builder.get_index_length
-    @max_bit_number = plsql.bmap_builder.c_max_bits
+    @max_bit_number = plsql.bmap_builder.C_SEGMENT_CAPACITY
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_decode_test(pt_bit_numbers_list INT_LIST) RETURN INT_LIST IS
       BEGIN
@@ -37,7 +37,7 @@ RSpec.shared_context 'shared bitmap builder' do
 
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION add_bit_list_to_bitmap_test(pt_bit_numbers_list INT_LIST, pt_bit_map_to_build INT_LIST) RETURN INT_LIST IS
-        bit_map bmap_builder.BMAP_LEVEL_LIST;
+        bit_map bmap_builder.BMAP_SEGMENT;
       BEGIN
         bit_map := bmap_builder.encode_bitmap( pt_bit_map_to_build );
         bmap_builder.add_bit_list_to_bitmap( pt_bit_numbers_list, bit_map );
