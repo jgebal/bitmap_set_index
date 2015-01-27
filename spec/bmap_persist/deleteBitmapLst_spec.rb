@@ -10,8 +10,8 @@ describe 'should delete bitmap list from bitmap table' do
   end
 
   it 'should delete only one record from table' do
-    encode_and_insert_bitmap(@bmap_values_to_encode)
-    keyid = encode_and_insert_bitmap(@bmap_values_to_encode)
+    encode_and_insert_bmap(@bmap_values_to_encode)
+    keyid = encode_and_insert_bmap(@bmap_values_to_encode)
     row_count = plsql.hierarchical_bitmap_table.count
     expect( plsql.bmap_persist.deleteBitmapLst(keyid) ).to eq  1
     expect( plsql.hierarchical_bitmap_table.count ).to eq row_count - 1
@@ -24,7 +24,7 @@ describe 'should delete bitmap list from bitmap table' do
   end
 
   it 'should delete record from table' do
-    keyid = encode_and_insert_bitmap(@bmap_values_to_encode)
+    keyid = encode_and_insert_bmap(@bmap_values_to_encode)
 
     rows_count = plsql.hierarchical_bitmap_table.select(:count)
 

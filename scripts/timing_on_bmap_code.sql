@@ -24,33 +24,33 @@ BEGIN
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_builder.encode_bitmap( int_lst );
+    bit_map := bmap_builder.encode_bmap_segment( int_lst );
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.encode_bitmap secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.encode_bmap_segment secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    int_lst := bmap_builder.decode_bitmap( bit_map );
+    int_lst := bmap_builder.decode_bmap_segment( bit_map );
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.decode_bitmap secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.decode_bmap_segment secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_and( bit_map, bit_map );
+    result := bmap_builder.segment_bit_and( bit_map, bit_map );
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.bit_and secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.segment_bit_and secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_or( bit_map, bit_map );
+    result := bmap_builder.segment_bit_or( bit_map, bit_map );
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.bit_or secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.segment_bit_or secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_minus( bit_map, bit_map );
+    result := bmap_builder.segment_bit_minus( bit_map, bit_map );
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.bit_minus secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.segment_bit_minus secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP

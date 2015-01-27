@@ -13,21 +13,21 @@ describe 'should set bitmap list for given bitmap key' do
     bitmap_key = nil
     rows_count = plsql.hierarchical_bitmap_table.select(:count)
     expect(
-        encode_and_set_bitmap(bitmap_key, @bmap_values_to_encode)
+        encode_and_set_bmap(bitmap_key, @bmap_values_to_encode)
     ).to eq [nil, :pio_bitmap_key => plsql.hierarchical_bitmap_key.currval ]
 
     expect( plsql.hierarchical_bitmap_table.select(:count) ).to eq rows_count + 1
   end
 
   it 'should update existing record if bitmap key is given' do
-    bitmap_key = encode_and_insert_bitmap(@bmap_values_to_encode)
+    bitmap_key = encode_and_insert_bmap(@bmap_values_to_encode)
     rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
     tmp_bmap_value = [5]
 
-    expect(encode_and_set_bitmap(bitmap_key, tmp_bmap_value)).to eq([1, {:pio_bitmap_key => bitmap_key} ])
+    expect(encode_and_set_bmap(bitmap_key, tmp_bmap_value)).to eq([1, {:pio_bitmap_key => bitmap_key} ])
 
-    expect(select_and_decode_bitmap(bitmap_key)).to eq(tmp_bmap_value)
+    expect(select_and_decode_bmap(bitmap_key)).to eq(tmp_bmap_value)
 
     result_rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
@@ -36,12 +36,12 @@ describe 'should set bitmap list for given bitmap key' do
 
   it 'should delete record if bitmap list is NULL or empty for existing bitmap key' do
     [ [], nil ].each do |bitmap|
-      bitmap_key = encode_and_insert_bitmap(@bmap_values_to_encode)
+      bitmap_key = encode_and_insert_bmap(@bmap_values_to_encode)
       rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
-      expect(encode_and_set_bitmap(bitmap_key, bitmap)).to eq([1, { :pio_bitmap_key => bitmap_key }])
+      expect(encode_and_set_bmap(bitmap_key, bitmap)).to eq([1, { :pio_bitmap_key => bitmap_key }])
 
-      expect(select_and_decode_bitmap(bitmap_key)).to eq([])
+      expect(select_and_decode_bmap(bitmap_key)).to eq([])
 
       result_rows_count = plsql.hierarchical_bitmap_table.select(:count)
 

@@ -12,6 +12,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
     ge_subscript_beyond_count EXCEPTION;
 PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
 
+  FUNCTION init_bit_values_in_byte RETURN BMAP_SEGMENT;
+
   gc_bit_values_in_byte    CONSTANT BMAP_SEGMENT := init_bit_values_in_byte();
 
   PROCEDURE bit_and_on_level(
@@ -133,7 +135,7 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
       END LOOP;
     END build_level;
 
-  PROCEDURE add_bit_list_to_bitmap(
+  PROCEDURE set_bits_in_bmap_segment(
     pt_bit_numbers_list INT_LIST,
     pt_bit_map_tree   IN OUT NOCOPY BMAP_SEGMENT
   ) IS
@@ -163,27 +165,16 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
         build_level( pt_bit_map_tree, bit_map_level_number );
       END LOOP;
 
-    END add_bit_list_to_bitmap;
+    END set_bits_in_bmap_segment;
 
-  FUNCTION encode_bitmap(
+  FUNCTION encode_bmap_segment(
     pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_SEGMENT IS
     bit_map_tree    BMAP_SEGMENT;
     BEGIN
-      add_bit_list_to_bitmap(pt_bit_numbers_list, bit_map_tree);
+      set_bits_in_bmap_segment(pt_bit_numbers_list, bit_map_tree);
       RETURN bit_map_tree;
-    END encode_bitmap;
-
-  FUNCTION decode_bitmap(
-    pt_bitmap_tree BMAP_SEGMENT
-  ) RETURN INT_LIST IS
-    BEGIN
-      IF pt_bitmap_tree IS NULL OR pt_bitmap_tree.COUNT = 0 THEN
-        RETURN INT_LIST( );
-      END IF;
-
-      RETURN decode_bitmap_level( pt_bitmap_tree(1) );
-    END decode_bitmap;
+    END encode_bmap_segment;
 
   FUNCTION decode_bitmap_node(
     p_node_value PLS_INTEGER
@@ -234,6 +225,17 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
       END LOOP;
       RETURN bit_numbers_list;
     END decode_bitmap_level;
+
+  FUNCTION decode_bmap_segment(
+    pt_bitmap_tree BMAP_SEGMENT
+  ) RETURN INT_LIST IS
+    BEGIN
+      IF pt_bitmap_tree IS NULL OR pt_bitmap_tree.COUNT = 0 THEN
+        RETURN INT_LIST( );
+      END IF;
+
+      RETURN decode_bitmap_level( pt_bitmap_tree(1) );
+    END decode_bmap_segment;
 
   PROCEDURE bit_and_on_level(
     pt_bmap_left   IN            BMAP_SEGMENT,
@@ -329,7 +331,7 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
       NULL;
     END bit_minus_on_level;
 
-  FUNCTION bit_and(
+  FUNCTION segment_bit_and(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT IS
@@ -348,9 +350,9 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
           1,
           result_bmap );
       RETURN result_bmap;
-    END bit_and;
+    END segment_bit_and;
 
-  FUNCTION bit_or(
+  FUNCTION segment_bit_or(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT IS
@@ -369,9 +371,9 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
           1,
           result_bmap );
       RETURN result_bmap;
-    END bit_or;
+    END segment_bit_or;
 
-  FUNCTION bit_minus(
+  FUNCTION segment_bit_minus(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT IS
@@ -384,13 +386,8 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
       END IF;
       bit_minus_on_level( result_bmap, pt_bmap_right, C_SEGMENT_HEIGHT, 1 );
       RETURN result_bmap;
-    END bit_minus;
+    END segment_bit_minus;
 
-
-  FUNCTION get_index_length RETURN INTEGER IS
-    BEGIN
-      RETURN C_ELEMENT_CAPACITY;
-    END;
 
 /**
  * Package constant initialization function - do not modify this code

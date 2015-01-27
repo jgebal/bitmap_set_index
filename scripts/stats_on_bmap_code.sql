@@ -25,31 +25,31 @@ BEGIN
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_builder.encode_bitmap( int_lst );
+    bit_map := bmap_builder.encode_bmap_segment( int_lst );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    int_lst := bmap_builder.decode_bitmap( bit_map );
+    int_lst := bmap_builder.decode_bmap_segment( bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_and( bit_map, bit_map );
+    result := bmap_builder.segment_bit_and( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_or( bit_map, bit_map );
+    result := bmap_builder.segment_bit_or( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_minus( bit_map, bit_map );
+    result := bmap_builder.segment_bit_minus( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 

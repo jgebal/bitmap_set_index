@@ -34,7 +34,7 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE('         BITS = '||BITS);
   SELECT column_value BULK COLLECT INTO int_lst FROM TABLE( bmap_list_generator(bits, bmap_density) );
 
-  bit_map := bmap_builder.encode_bitmap( int_lst );
+  bit_map := bmap_builder.encode_bmap_segment( int_lst );
 
   x := bmap_persist.insertBitmapLst(bit_map);
 

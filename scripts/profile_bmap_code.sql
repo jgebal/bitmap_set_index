@@ -25,42 +25,42 @@ BEGIN
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_builder.encode_bitmap ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+      'bmap_builder.encode_bmap_segment ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_builder.encode_bitmap( int_lst );
+    bit_map := bmap_builder.encode_bmap_segment( int_lst );
   END LOOP;
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_builder.decode_bitmap ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+      'bmap_builder.decode_bmap_segment ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    int_lst := bmap_builder.decode_bitmap( bit_map );
+    int_lst := bmap_builder.decode_bmap_segment( bit_map );
   END LOOP;
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_builder.bit_and ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+      'bmap_builder.segment_bit_and ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_and( bit_map, bit_map );
+    result := bmap_builder.segment_bit_and( bit_map, bit_map );
   END LOOP;
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_builder.bit_or ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+      'bmap_builder.segment_bit_or ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_or( bit_map, bit_map );
+    result := bmap_builder.segment_bit_or( bit_map, bit_map );
   END LOOP;
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_builder.bit_minus ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+      'bmap_builder.segment_bit_minus ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.bit_minus( bit_map, bit_map );
+    result := bmap_builder.segment_bit_minus( bit_map, bit_map );
   END LOOP;
   DBMS_PROFILER.STOP_PROFILER;
 

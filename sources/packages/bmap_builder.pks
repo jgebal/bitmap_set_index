@@ -15,41 +15,33 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
   TYPE BMAP_SEGMENT_LEVEL  IS TABLE OF PLS_INTEGER INDEX BY PLS_INTEGER;
   TYPE BMAP_SEGMENT IS TABLE OF BMAP_SEGMENT_LEVEL INDEX BY PLS_INTEGER;
 
-  FUNCTION init_bit_values_in_byte RETURN BMAP_SEGMENT;
-
-  FUNCTION encode_bitmap(
+  FUNCTION encode_bmap_segment(
     pt_bit_numbers_list INT_LIST
   ) RETURN BMAP_SEGMENT;
 
-  FUNCTION decode_bitmap(
+  FUNCTION decode_bmap_segment(
     pt_bitmap_tree BMAP_SEGMENT
   ) RETURN INT_LIST;
 
-  FUNCTION bit_and(
+  FUNCTION segment_bit_and(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
-  FUNCTION bit_or(
+  FUNCTION segment_bit_or(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
-  FUNCTION bit_minus(
+  FUNCTION segment_bit_minus(
     pt_bmap_left  IN BMAP_SEGMENT,
     pt_bmap_right IN BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
-  PROCEDURE add_bit_list_to_bitmap(
+  PROCEDURE set_bits_in_bmap_segment(
     pt_bit_numbers_list INT_LIST,
     pt_bit_map_tree   IN OUT NOCOPY BMAP_SEGMENT
   );
-
-  FUNCTION get_index_length RETURN INTEGER;
-
-  FUNCTION decode_bitmap_level(
-    pt_bitmap_node_list BMAP_SEGMENT_LEVEL
-  ) RETURN INT_LIST;
 
 END bmap_builder;
 /
