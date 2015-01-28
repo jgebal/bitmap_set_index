@@ -46,6 +46,13 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
 
 --IMPLEMENTATIONS
 
+  FUNCTION build_bitmap(
+    pc_bit_list_crsr BIT_LIST_REF_C
+  ) RETURN STOR_BMAP_SEGMENT PIPELINED IS
+    BEGIN
+      RETURN;
+    END build_bitmap;
+
   PROCEDURE init_if_needed( pt_bitmap_tree IN OUT NOCOPY BMAP_SEGMENT ) IS
     x BMAP_SEGMENT_LEVEL;
     BEGIN
@@ -389,6 +396,44 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
     END segment_bit_minus;
 
 
+  FUNCTION convert_for_storage(
+    pt_bitmap_list BMAP_SEGMENT
+  ) RETURN STOR_BMAP_SEGMENT IS
+    node_list STOR_BMAP_LEVEL := STOR_BMAP_LEVEL();
+    level_list STOR_BMAP_SEGMENT := STOR_BMAP_SEGMENT();
+    j PLS_INTEGER;
+    BEGIN
+      IF NOT (pt_bitmap_list IS NULL OR pt_bitmap_list.COUNT = 0) THEN
+        FOR i IN pt_bitmap_list.FIRST .. pt_bitmap_list.LAST LOOP
+          level_list.EXTEND;
+          j := pt_bitmap_list(i).FIRST;
+          WHILE j IS NOT NULL LOOP
+            node_list.EXTEND;
+            node_list(node_list.LAST) := STOR_BMAP_NODE( j, pt_bitmap_list(i)(j) );
+            j := pt_bitmap_list(i).NEXT( j );
+          END LOOP;
+          level_list(level_list.LAST) := node_list;
+        END LOOP;
+      END IF;
+      RETURN level_list;
+    END convert_for_storage;
+
+  FUNCTION convert_for_processing(
+    pt_bitmap_list STOR_BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT IS
+    level_list BMAP_SEGMENT;
+    j PLS_INTEGER;
+    BEGIN
+      IF NOT (pt_bitmap_list IS NULL OR CARDINALITY(pt_bitmap_list) = 0) THEN
+        FOR i IN pt_bitmap_list.FIRST .. pt_bitmap_list.LAST LOOP
+          FOR j IN pt_bitmap_list(i).FIRST .. pt_bitmap_list(i).LAST LOOP
+            level_list(i)(pt_bitmap_list(i)(j).node_index) := pt_bitmap_list(i)(j).node_value;
+          END LOOP;
+        END LOOP;
+      END IF;
+      RETURN level_list;
+    END convert_for_processing;
+
 /**
  * Package constant initialization function - do not modify this code
  *  if you dont know what you're doing
@@ -436,9 +481,6 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
         RETURN v_res;
       END multiset_union_all;
     BEGIN
---       v_low_values_in_byte.EXTEND(32);
---       v_high_values_in_byte.EXTEND(32);
---       v_result.EXTEND(1023);
       v_low_values_in_byte( 1) := get_bmap_node_list(INT_LIST(1));
       v_low_values_in_byte( 2) := get_bmap_node_list(INT_LIST(2));
       v_low_values_in_byte( 3) := get_bmap_node_list(INT_LIST(1,2));

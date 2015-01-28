@@ -55,13 +55,13 @@ BEGIN
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    storage_bitmap := bmap_persist.convertForStorage(bit_map);
+    storage_bitmap := bmap_builder.convert_for_storage(bit_map);
   END LOOP;
   mystats_pkg.ms_stop(10);
 
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_persist.convertForProcessing(storage_bitmap);
+    bit_map := bmap_builder.convert_for_processing(storage_bitmap);
   END LOOP;
   mystats_pkg.ms_stop(10);
 

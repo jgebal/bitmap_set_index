@@ -54,15 +54,15 @@ BEGIN
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    storage_bitmap := bmap_persist.convertForStorage(bit_map);
+    storage_bitmap := bmap_builder.convert_for_storage(bit_map);
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_persist.convertForStorage secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.convert_for_storage secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_persist.convertForProcessing(storage_bitmap);
+    bit_map := bmap_builder.convert_for_processing(storage_bitmap);
   END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_persist.convertForProcessing secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
+  DBMS_OUTPUT.PUT_LINE( 'bmap_builder.convert_for_processing secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
   t := DBMS_UTILITY.get_time;
   FOR i IN 1 .. loops LOOP

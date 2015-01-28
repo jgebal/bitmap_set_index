@@ -65,13 +65,13 @@ BEGIN
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_persist.convertForStorage ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
-  storage_bitmap := bmap_persist.convertForStorage(bit_map);
+      'bmap_builder.convert_for_storage ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+  storage_bitmap := bmap_builder.convert_for_storage(bit_map);
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
-      'bmap_persist.convertForProcessing ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
-  bit_map := bmap_persist.convertForProcessing(storage_bitmap);
+      'bmap_builder.convert_for_processing ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
+  bit_map := bmap_builder.convert_for_processing(storage_bitmap);
   DBMS_PROFILER.STOP_PROFILER;
 
   DBMS_PROFILER.START_PROFILER(
