@@ -9,12 +9,6 @@ describe 'Convert list of bit numbers to hierarchical bitmap' do
     expect(encode_and_decode_bmap( nil )).to eq([])
   end
 
-  it 'should ignore NULL values present on list of bits' do
-    bit_list = [1,nil,3]
-    result = encode_and_decode_bmap(bit_list)
-    expect(result).to eq([1,3])
-  end
-
   it 'should return a bitmap for given parameters' do
     bit_list = [1, 2, 3, 4]
     result = encode_and_decode_bmap(bit_list)

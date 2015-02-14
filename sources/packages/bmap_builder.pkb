@@ -9,8 +9,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
 --PRIVATE SPECIFICATIONS
 
-    ge_subscript_beyond_count EXCEPTION;
-PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
+  ge_subscript_beyond_count EXCEPTION;
+  PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
 
   FUNCTION init_bit_values_in_byte RETURN BMAP_SEGMENT;
 
@@ -45,13 +45,6 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
   ) RETURN PLS_INTEGER DETERMINISTIC;
 
 --IMPLEMENTATIONS
-
-  FUNCTION build_bitmap(
-    pc_bit_list_crsr BIT_LIST_REF_C
-  ) RETURN STOR_BMAP_SEGMENT PIPELINED IS
-    BEGIN
-      RETURN;
-    END build_bitmap;
 
   PROCEDURE init_if_needed( pt_bitmap_tree IN OUT NOCOPY BMAP_SEGMENT ) IS
     x BMAP_SEGMENT_LEVEL;
@@ -146,28 +139,16 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
     pt_bit_numbers_list INT_LIST,
     pt_bit_map_tree   IN OUT NOCOPY BMAP_SEGMENT
   ) IS
-    bit_numbers_set INT_LIST := INT_LIST( );
     v_bitmap_node   BMAP_SEGMENT_LEVEL;
     max_bit_number  NUMBER;
     BEGIN
-      IF pt_bit_numbers_list IS NULL OR CARDINALITY( pt_bit_numbers_list ) = 0 THEN
-        RETURN;
-      END IF;
-
-      SELECT MAX( COLUMN_VALUE ) INTO max_bit_number FROM TABLE (pt_bit_numbers_list);
-      IF max_bit_number > C_SEGMENT_CAPACITY THEN
-        RAISE_APPLICATION_ERROR( -20000, 'Index size overflow' );
-      END IF;
-
-      bit_numbers_set := deduplicate_bit_numbers_list( pt_bit_numbers_list );
-
-      IF bit_numbers_set.COUNT = 0 THEN
+      IF pt_bit_numbers_list IS NULL OR pt_bit_numbers_list.COUNT = 0 THEN
         RETURN;
       END IF;
 
       init_if_needed( pt_bit_map_tree );
 
-      build_leaf_level( pt_bit_map_tree( 1 ), bit_numbers_set );
+      build_leaf_level( pt_bit_map_tree( 1 ), pt_bit_numbers_list );
       FOR bit_map_level_number IN 2 .. C_SEGMENT_HEIGHT LOOP
         build_level( pt_bit_map_tree, bit_map_level_number );
       END LOOP;
@@ -433,6 +414,74 @@ PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
       END IF;
       RETURN level_list;
     END convert_for_processing;
+
+  FUNCTION build_and_store_bmap_segments(
+    pc_bit_list_crsr BIT_LIST_REF_C,
+    bitmap_key       INTEGER,
+    segment_V_pos    INTEGER := 1
+  ) RETURN INT_LIST PIPELINED PARALLEL_ENABLE(PARTITION pc_bit_list_crsr BY HASH (bit_segment_no))
+    CLUSTER pc_bit_list_crsr BY (bit_segment_no)
+  IS
+    segment_H_pos        PLS_INTEGER;
+    segment_H_pos_prev   PLS_INTEGER;
+    segment_int_list     INT_LIST :=INT_LIST();
+    TYPE ELEM_LIST_TYPE  IS TABLE OF BIT_LIST_C%ROWTYPE;
+    bit_elem_list        ELEM_LIST_TYPE;
+    BEGIN
+      LOOP
+        FETCH pc_bit_list_crsr BULK COLLECT INTO bit_elem_list LIMIT C_SEGMENT_CAPACITY;
+        EXIT WHEN CARDINALITY(bit_elem_list) = 0;
+        FOR i IN bit_elem_list.FIRST .. bit_elem_list.LAST LOOP
+          segment_H_pos := CEIL( bit_elem_list(i).bit_no / C_SEGMENT_CAPACITY );
+          IF segment_H_pos != segment_H_pos_prev THEN
+            bmap_persist.insertBitmapSegment( bitmap_key, segment_V_pos, segment_H_pos_prev, convert_for_storage( encode_bmap_segment(segment_int_list) ) );
+            PIPE ROW( segment_H_pos );
+            segment_int_list.DELETE;
+          ELSE
+            segment_int_list.EXTEND;
+            segment_int_list( segment_int_list.LAST() ) := MOD(bit_elem_list(i).bit_no, C_SEGMENT_CAPACITY);
+          END IF;
+          segment_H_pos_prev := segment_H_pos;
+        END LOOP;
+        EXIT WHEN pc_bit_list_crsr%NOTFOUND;
+      END LOOP;
+      IF CARDINALITY( segment_int_list ) > 0 THEN
+        bmap_persist.insertBitmapSegment( bitmap_key, segment_V_pos, segment_H_pos, convert_for_storage( encode_bmap_segment(segment_int_list) ) );
+        PIPE ROW( segment_H_pos );
+        segment_int_list.DELETE;
+      END IF;
+      RETURN;
+    END build_and_store_bmap_segments;
+
+  PROCEDURE build_bitmap(
+    pc_bit_list_crsr BIT_LIST_REF_C,
+    bitmap_key       INTEGER
+  ) IS
+    dynamic_sql      VARCHAR2(32767);
+    x                INTEGER;
+    BEGIN
+      SELECT COLUMN_VALUE as bit_no
+      INTO x
+      FROM TABLE( build_and_store_bmap_segments(
+      CURSOR (
+        SELECT
+          COLUMN_VALUE AS bit_no, CEIL(COLUMN_VALUE/C_SEGMENT_CAPACITY) AS bit_segment_no
+        FROM TABLE ( build_and_store_bmap_segments(
+        CURSOR (
+          SELECT
+            COLUMN_VALUE AS bit_no, CEIL(COLUMN_VALUE/C_SEGMENT_CAPACITY) AS bit_segment_no
+          FROM TABLE ( build_and_store_bmap_segments( pc_bit_list_crsr, bitmap_key )
+          )
+        )
+        , bitmap_key
+        , 2 )
+        )
+      )
+      , bitmap_key
+      , 3 )
+      );
+
+    END build_bitmap;
 
 /**
  * Package constant initialization function - do not modify this code

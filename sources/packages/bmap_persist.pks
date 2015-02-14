@@ -9,6 +9,13 @@ CREATE OR REPLACE PACKAGE bmap_persist AS
 
   SUBTYPE BMAP_SEGMENT IS BMAP_BUILDER.BMAP_SEGMENT;
 
+  PROCEDURE insertBitmapSegment(
+    pi_bitmap_key    INTEGER,
+    pi_segment_V_pos INTEGER,
+    pi_segment_H_pos INTEGER,
+    pi_segment STOR_BMAP_SEGMENT
+  );
+
   FUNCTION insertBitmapLst(
     pt_bitmap_list BMAP_SEGMENT
   ) RETURN INTEGER;

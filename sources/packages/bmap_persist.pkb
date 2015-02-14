@@ -7,6 +7,23 @@ ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 
 CREATE OR REPLACE PACKAGE BODY bmap_persist AS
 
+  PROCEDURE insertBitmapSegment(
+    pi_bitmap_key    INTEGER,
+    pi_segment_V_pos INTEGER,
+    pi_segment_H_pos INTEGER,
+    pi_segment STOR_BMAP_SEGMENT
+  ) IS
+    bmap_anydata ANYDATA;
+    PRAGMA AUTONOMOUS_TRANSACTION;
+  BEGIN
+    bmap_anydata := anydata.ConvertCollection(  pi_segment );
+    INSERT
+      INTO hierarchical_bitmap_table1
+           ( bmap_key, bmap_h_pos, bmap_v_pos, bmap )
+    VALUES ( pi_bitmap_key, pi_segment_H_pos, pi_segment_V_pos, bmap_anydata );
+    COMMIT;
+  END insertBitmapSegment;
+
   FUNCTION insertBitmapLst(
     pt_bitmap_list BMAP_SEGMENT
   ) RETURN INTEGER IS

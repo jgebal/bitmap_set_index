@@ -6,7 +6,7 @@ describe 'Perform BIT MINUS operation on encoded bitmaps' do
   include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if one of input bitmaps is empty' do
-    expect(segment_bit_minus( [nil], [1, nil, 3] )).to eq([])
+    expect(segment_bit_minus( [], [1, 3] )).to eq([])
   end
 
   it 'should return empty bitmap if both bitmaps are equal' do

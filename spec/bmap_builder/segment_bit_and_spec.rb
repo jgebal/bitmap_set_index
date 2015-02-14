@@ -6,7 +6,7 @@ describe 'Perform BIT AND operation on encoded bitmaps' do
   include_context 'shared bitmap builder'
 
   it 'should return empty bitmap if one of input bitmaps is empty' do
-    expect( segment_bit_and( [nil], [1, nil, 3] ) ).to eq([])
+    expect( segment_bit_and( [], [1, 3] ) ).to eq([])
   end
 
   it 'should return the same bitmap if both bitmaps are equal' do
