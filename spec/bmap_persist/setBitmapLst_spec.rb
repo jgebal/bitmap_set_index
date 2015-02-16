@@ -14,7 +14,7 @@ describe 'should set bitmap list for given bitmap key' do
     rows_count = plsql.hierarchical_bitmap_table.select(:count)
     expect(
         encode_and_set_bmap(bitmap_key, @bmap_values_to_encode)
-    ).to eq [nil, :pio_bitmap_key => plsql.hierarchical_bitmap_key.currval ]
+    ).to eq [nil, :p_bitmap_key => plsql.hierarchical_bitmap_key.currval ]
 
     expect( plsql.hierarchical_bitmap_table.select(:count) ).to eq rows_count + 1
   end
@@ -25,7 +25,7 @@ describe 'should set bitmap list for given bitmap key' do
 
     tmp_bmap_value = [5]
 
-    expect(encode_and_set_bmap(bitmap_key, tmp_bmap_value)).to eq([1, {:pio_bitmap_key => bitmap_key} ])
+    expect(encode_and_set_bmap(bitmap_key, tmp_bmap_value)).to eq([1, {:p_bitmap_key => bitmap_key} ])
 
     expect(select_and_decode_bmap(bitmap_key)).to eq(tmp_bmap_value)
 
@@ -39,7 +39,7 @@ describe 'should set bitmap list for given bitmap key' do
       bitmap_key = encode_and_insert_bmap(@bmap_values_to_encode)
       rows_count = plsql.hierarchical_bitmap_table.select(:count)
 
-      expect(encode_and_set_bmap(bitmap_key, bitmap)).to eq([1, { :pio_bitmap_key => bitmap_key }])
+      expect(encode_and_set_bmap(bitmap_key, bitmap)).to eq([1, { :p_bitmap_key => bitmap_key }])
 
       expect(select_and_decode_bmap(bitmap_key)).to eq([])
 

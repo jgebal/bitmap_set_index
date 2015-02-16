@@ -16,63 +16,63 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
   C_BITMAP_HEIGHT    CONSTANT BINARY_INTEGER := 3;
   C_MAX_BITMAP_SIZE  CONSTANT INTEGER        := POWER( C_SEGMENT_CAPACITY, C_BITMAP_HEIGHT );
 
-  TYPE PLS_INT_LIST       IS TABLE OF PLS_INTEGER;
-  TYPE BMAP_SEGMENT_LEVEL IS TABLE OF PLS_INTEGER INDEX BY PLS_INTEGER;
-  TYPE BMAP_SEGMENT       IS TABLE OF BMAP_SEGMENT_LEVEL INDEX BY PLS_INTEGER;
+  TYPE BIN_INT_LIST       IS TABLE OF BINARY_INTEGER;
+  TYPE BMAP_SEGMENT_LEVEL IS TABLE OF BINARY_INTEGER INDEX BY BINARY_INTEGER;
+  TYPE BMAP_SEGMENT       IS TABLE OF BMAP_SEGMENT_LEVEL INDEX BY BINARY_INTEGER;
 
   CURSOR BIT_LIST_C   IS (SELECT CAST(NULL AS INTEGER) bit_no, cast(NULL AS INTEGER) bit_segment_no FROM dual WHERE 1=0);
   TYPE BIT_LIST_REF_C IS REF CURSOR RETURN BIT_LIST_C%ROWTYPE;
 
   --bmap operators
   PROCEDURE build_bitmap(
-    pc_bit_list_crsr BIT_LIST_REF_C,
-    bitmap_key       INTEGER
+    p_bit_list_crsr  BIT_LIST_REF_C,
+    p_bitmap_key     INTEGER
   );
 
   FUNCTION build_and_store_bmap_segments(
-    pc_bit_list_crsr BIT_LIST_REF_C,
-    bitmap_key       INTEGER,
-    segment_V_pos    INTEGER := 1
+    p_bit_list_crsr BIT_LIST_REF_C,
+    p_bitmap_key       INTEGER,
+    p_segment_V_pos    INTEGER := 1
   ) RETURN INT_LIST PIPELINED
-    PARALLEL_ENABLE(PARTITION pc_bit_list_crsr BY HASH (bit_segment_no))
-    CLUSTER pc_bit_list_crsr BY (bit_segment_no)
+    PARALLEL_ENABLE(PARTITION p_bit_list_crsr BY HASH (bit_segment_no))
+    CLUSTER p_bit_list_crsr BY (bit_segment_no)
   ;
 
   --segment operators
   FUNCTION encode_bmap_segment(
-    pt_bit_numbers_list INT_LIST
+    p_bit_numbers_list BIN_INT_LIST
   ) RETURN BMAP_SEGMENT;
 
   FUNCTION decode_bmap_segment(
-    pt_bitmap_tree BMAP_SEGMENT
-  ) RETURN INT_LIST;
+    p_bitmap_tree BMAP_SEGMENT
+  ) RETURN BIN_INT_LIST;
 
   FUNCTION segment_bit_and(
-    pt_bmap_left  IN BMAP_SEGMENT,
-    pt_bmap_right IN BMAP_SEGMENT
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
   FUNCTION segment_bit_or(
-    pt_bmap_left  IN BMAP_SEGMENT,
-    pt_bmap_right IN BMAP_SEGMENT
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
   FUNCTION segment_bit_minus(
-    pt_bmap_left  IN BMAP_SEGMENT,
-    pt_bmap_right IN BMAP_SEGMENT
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
   PROCEDURE set_bits_in_bmap_segment(
-    pt_bit_numbers_list INT_LIST,
-    pt_bit_map_tree   IN OUT NOCOPY BMAP_SEGMENT
+    p_bit_numbers_list BIN_INT_LIST,
+    p_bit_map_tree     IN OUT NOCOPY BMAP_SEGMENT
   );
 
   FUNCTION convert_for_storage(
-    pt_bitmap_list BMAP_SEGMENT
+    p_bitmap_list BMAP_SEGMENT
   ) RETURN STOR_BMAP_SEGMENT;
 
   FUNCTION convert_for_processing(
-    pt_bitmap_list STOR_BMAP_SEGMENT
+    p_bitmap_list STOR_BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
 END bmap_builder;
