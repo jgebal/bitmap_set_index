@@ -10,7 +10,7 @@ describe 'should set bitmap list for given bitmap key' do
     bitmap_key = nil
     affectedRows = nil
 
-    plsql.bmap_persist.setBitmapLst(bitmap_key, @bmap_value, affectedRows).should == { :pi_bitmap_key => plsql.hierarchical_bitmap_key.currval, :pio_affected_rows => nil }
+    expect( plsql.bmap_persist.setBitmapLst(bitmap_key, @bmap_value, affectedRows) ).to eq( { :pi_bitmap_key => plsql.hierarchical_bitmap_key.currval, :pio_affected_rows => nil } )
   end
 
   it 'should update existing record if bitmap key is given' do
@@ -19,13 +19,13 @@ describe 'should set bitmap list for given bitmap key' do
 
     tmp_bmap_value = encode_bitmap(5)
 
-    plsql.bmap_persist.setBitmapLst(bitmap_key, tmp_bmap_value, nil).should == { :pi_bitmap_key => bitmap_key, :pio_affected_rows => 1 }
+    expect( plsql.bmap_persist.setBitmapLst(bitmap_key, tmp_bmap_value, nil) ).to eq( { :pi_bitmap_key => bitmap_key, :pio_affected_rows => 1 } )
 
-    plsql.bmap_persist.getBitmapLst(bitmap_key).should == tmp_bmap_value
+    expect( plsql.bmap_persist.getBitmapLst(bitmap_key) ).to eq( tmp_bmap_value )
 
     resultRowsCount = plsql.hierarchical_bitmap_table.select(:count)
 
-    resultRowsCount.should == rowsCount
+    expect( resultRowsCount ).to eq( rowsCount )
   end
 
   [
@@ -35,13 +35,13 @@ describe 'should set bitmap list for given bitmap key' do
       bitmap_key = plsql.bmap_persist.insertBitmapLst(@bmap_value)
       rowsCount = plsql.hierarchical_bitmap_table.select(:count)
 
-      plsql.bmap_persist.setBitmapLst(bitmap_key, bitmap, nil).should == { :pi_bitmap_key => bitmap_key, :pio_affected_rows => 1 }
+      expect( plsql.bmap_persist.setBitmapLst(bitmap_key, bitmap, nil) ).to eq( { :pi_bitmap_key => bitmap_key, :pio_affected_rows => 1 } )
 
-      plsql.bmap_persist.getBitmapLst(bitmap_key).should be_nil
+      expect( plsql.bmap_persist.getBitmapLst(bitmap_key) ).to be_nil
 
       resultRowsCount = plsql.hierarchical_bitmap_table.select(:count)
 
-      resultRowsCount.should == rowsCount - 1
+      expect( resultRowsCount ).to  eq ( rowsCount - 1 )
     end
   end
 

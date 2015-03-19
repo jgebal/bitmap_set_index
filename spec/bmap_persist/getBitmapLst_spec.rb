@@ -9,19 +9,19 @@ describe 'should get bitmap list from bitmap table for given bitmap key' do
 
     result = plsql.bmap_persist.getBitmapLst(bitmap_key)
 
-    result.should == [[1], [1], [1], [1], [1]]
+    expect( result).to eq( [[1], [1], [1], [1], [1]] )
   end
 
   it 'should return null if bmap_key is null' do
 
     result = plsql.bmap_persist.getBitmapLst(nil)
 
-    result.should be_nil
+    expect( result ).to be_nil
   end
 
   it 'should return null if bmap_key not exists' do
     bitmap_key = plsql.select_one('select NVL(max(bitmap_key), 0) from hierarchical_bitmap_table')
 
-    plsql.bmap_persist.getBitmapLst(bitmap_key+1).should be_nil
+    expect( plsql.bmap_persist.getBitmapLst(bitmap_key+1) ).to be_nil
   end
 end

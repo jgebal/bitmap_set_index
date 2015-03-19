@@ -8,27 +8,27 @@ describe 'should update bitmap list to bitmap table' do
   it 'should update record to table' do
     keyid = plsql.bmap_persist.insertBitmapLst(@bmap_value)
 
-    plsql.bmap_persist.updateBitmapLst(keyid, @bmap_value).should == 1
+    expect( plsql.bmap_persist.updateBitmapLst(keyid, @bmap_value) ).to eq( 1 )
   end
 
   it 'should update not existing key' do
-    plsql.bmap_persist.updateBitmapLst(0, @bmap_value).should == 0
+    expect( plsql.bmap_persist.updateBitmapLst(0, @bmap_value) ).to eq( 0 )
   end
 
   it 'should not update records when bitmap key is null' do
-    plsql.bmap_persist.updateBitmapLst(nil, @bmap_value).should == 0
+    expect( plsql.bmap_persist.updateBitmapLst(nil, @bmap_value) ).to eq( 0 )
   end
 
   it 'should return -1 when bitmap list is null' do
     keyid = plsql.bmap_persist.insertBitmapLst(@bmap_value)
 
-    plsql.bmap_persist.updateBitmapLst(keyid, nil).should == -1
+    expect( plsql.bmap_persist.updateBitmapLst(keyid, nil) ).to eq( -1 )
   end
 
   it 'should return -1 when bitmap list is empty' do
     keyid = plsql.bmap_persist.insertBitmapLst(@bmap_value)
 
-    plsql.bmap_persist.updateBitmapLst(keyid, plsql.bmap_persist.bit_no_lst_to_bit_map([])).should == -1
+    expect( plsql.bmap_persist.updateBitmapLst(keyid, plsql.bmap_persist.bit_no_lst_to_bit_map([])) ).to eq( -1 )
   end
 
   it 'should modify bitmap in bitmap table' do
@@ -37,6 +37,6 @@ describe 'should update bitmap list to bitmap table' do
 
     plsql.bmap_persist.updateBitmapLst(keyid, tmp_bmap_value)
 
-    plsql.bmap_persist.getBitmapLst(keyid).should == tmp_bmap_value
+    expect( plsql.bmap_persist.getBitmapLst(keyid) ).to eq( tmp_bmap_value )
   end
 end
