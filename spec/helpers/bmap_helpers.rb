@@ -61,12 +61,12 @@ RSpec.shared_context 'shared bitmap builder' do
     SQL
 
     plsql.execute <<-SQL
-      CREATE OR REPLACE FUNCTION set_bits_in_bmap_segment_test(p_bit_numbers_list INT_LIST, p_bit_map_to_build INT_LIST) RETURN INT_LIST IS
+      CREATE OR REPLACE FUNCTION encode_bmap_segment(p_bit_numbers_list INT_LIST, p_bit_map_to_build INT_LIST) RETURN INT_LIST IS
         bit_map bmap_builder.BMAP_SEGMENT;
       BEGIN
-        bit_map := bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_map_to_build) );
-        bmap_builder.set_bits_in_bmap_segment( to_bin_int_list(p_bit_numbers_list), bit_map );
-        RETURN to_int_list(bmap_builder.decode_bmap_segment( bit_map ));
+        bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_map_to_build), bit_map );
+        bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list), bit_map );
+        RETURN to_int_list( bmap_builder.decode_bmap_segment( bit_map ) );
       END;
     SQL
 
@@ -121,7 +121,7 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute('DROP FUNCTION encode_decode_test')
     plsql.execute('DROP FUNCTION encode_bitand_test')
     plsql.execute('DROP FUNCTION encode_bitor_test')
-    plsql.execute('DROP FUNCTION set_bits_in_bmap_segment_test')
+    plsql.execute('DROP FUNCTION encode_bmap_segment')
     plsql.execute('DROP FUNCTION encode_bitminus_test')
     plsql.execute('DROP FUNCTION encode_and_insert_bmap')
     plsql.execute('DROP FUNCTION encode_and_update_bmap')
@@ -144,8 +144,8 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.encode_bitor_test(left, right)
   end
 
-  def set_bits_in_bmap_segment(bit_list, bit_map)
-    plsql.set_bits_in_bmap_segment_test(bit_list, bit_map)
+  def encode_bmap_segment(bit_list, bit_map)
+    plsql.encode_bmap_segment(bit_list, bit_map)
   end
 
   def encode_and_insert_bmap(bit_number_list)
@@ -165,14 +165,6 @@ RSpec.shared_context 'shared bitmap builder' do
   end
 
 end
-
-  def encode_bmap_segment(*bit_number_list)
-    if bit_number_list.is_a?(Array) && bit_number_list[0].is_a?(Array) then
-      plsql.bmap_builder.encode_bmap_segment(bit_number_list[0])
-    else
-      plsql.bmap_builder.encode_bmap_segment(bit_number_list)
-    end
-  end
 
   def decode_bmap_segment(bitmap)
     plsql.bmap_builder.decode_bmap_segment(bitmap)

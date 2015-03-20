@@ -14,14 +14,12 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     p_segment STOR_BMAP_SEGMENT
   ) IS
     v_bmap_anydata ANYDATA;
-    PRAGMA AUTONOMOUS_TRANSACTION;
   BEGIN
     v_bmap_anydata := anydata.ConvertCollection(  p_segment );
     INSERT
       INTO hierarchical_bitmap_table1
            ( bmap_key, bmap_h_pos, bmap_v_pos, bmap )
     VALUES ( p_bitmap_key, p_segment_H_pos, p_segment_V_pos, v_bmap_anydata );
-    COMMIT;
   END insertBitmapSegment;
 
   FUNCTION insertBitmapLst(
