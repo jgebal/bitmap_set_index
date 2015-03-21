@@ -2,76 +2,83 @@ SET SERVEROUPTUT ON;
 SET TIMING ON;
 
 DECLARE
-  a            SIMPLE_INTEGER := 0;
-  bit_map      bmap_builder.BMAP_SEGMENT;
-  result       bmap_builder.BMAP_SEGMENT;
-  storage_bitmap STORAGE_BMAP_LEVEL_LIST;
-  int_lst      INT_LIST;
-  t            NUMBER;
-  loops        SIMPLE_INTEGER := 1;
-  bmap_density NUMBER := 1 / 2;
-  BITS         INTEGER := 1000000;
-  x            INTEGER;
+  a              SIMPLE_INTEGER := 0;
+  bit_map        bmap_segment_builder.BMAP_SEGMENT;
+  result         bmap_segment_builder.BMAP_SEGMENT;
+  storage_bitmap STOR_BMAP_SEGMENT;
+  int_lst        bmap_segment_builder.BIN_INT_LIST;
+  t              NUMBER;
+  loops          SIMPLE_INTEGER := 1;
+  bmap_density   NUMBER := 1;
+  BITS           INTEGER := 5000000;
+  x              INTEGER;
+  PROCEDURE put(txt VARCHAR2) IS
+    BEGIN
+      DBMS_OUTPUT.PUT_LINE( lpad('-',40,'-') );
+      DBMS_OUTPUT.PUT_LINE( lpad('-',40,'-') );
+      DBMS_OUTPUT.PUT_LINE(txt);
+      DBMS_OUTPUT.PUT_LINE( lpad('-',40,'-') );
+      DBMS_OUTPUT.PUT_LINE( lpad('-',40,'-') );
+    END;
 BEGIN
 
-  DBMS_OUTPUT.PUT_LINE('Running with parameters:');
-  DBMS_OUTPUT.PUT_LINE('        loops = '||loops);
-  DBMS_OUTPUT.PUT_LINE(' bmap_density = '||bmap_density);
-  DBMS_OUTPUT.PUT_LINE('         BITS = '||BITS);
+  put('
+  Running with parameters:
+          loops = '||loops||'
+   bmap_density = '||bmap_density||'
+           BITS = '||BITS);
 
-  mystats_pkg.ms_start;
   SELECT column_value BULK COLLECT INTO int_lst FROM TABLE( bmap_list_generator(bits, bmap_density) );
-  mystats_pkg.ms_stop(10);
 
+
+  put('encode_bmap_segment');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_builder.encode_bmap_segment( int_lst );
+    bit_map := bmap_segment_builder.encode_bmap_segment( int_lst );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('decode_bmap_segment');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    int_lst := bmap_builder.decode_bmap_segment( bit_map );
+    int_lst := bmap_segment_builder.decode_bmap_segment( bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('segment_bit_and');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.segment_bit_and( bit_map, bit_map );
+    result := bmap_segment_builder.segment_bit_and( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('segment_bit_or');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.segment_bit_or( bit_map, bit_map );
+    result := bmap_segment_builder.segment_bit_or( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('segment_bit_minus');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    result := bmap_builder.segment_bit_minus( bit_map, bit_map );
+    result := bmap_segment_builder.segment_bit_minus( bit_map, bit_map );
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('convert_for_storage');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    storage_bitmap := bmap_builder.convert_for_storage(bit_map);
+    storage_bitmap := bmap_segment_builder.convert_for_storage(bit_map);
   END LOOP;
   mystats_pkg.ms_stop(10);
 
+  put('convert_for_processing');
   mystats_pkg.ms_start;
   FOR i IN 1 .. loops LOOP
-    bit_map := bmap_builder.convert_for_processing(storage_bitmap);
-  END LOOP;
-  mystats_pkg.ms_stop(10);
-
-  mystats_pkg.ms_start;
-  FOR i IN 1 .. loops LOOP
-    x := bmap_persist.insertBitmapLst(bit_map);
+    bit_map := bmap_segment_builder.convert_for_processing(storage_bitmap);
   END LOOP;
   mystats_pkg.ms_stop(10);
 
 END;
 /
-
-DROP FUNCTION bmap_list_generator;

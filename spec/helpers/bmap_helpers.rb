@@ -2,11 +2,11 @@ RSpec.shared_context 'shared bitmap builder' do
 
   before(:all) do
     plsql.dbms_output_stream = STDOUT
-    @bits_in_segment = plsql.bmap_builder.C_ELEMENT_CAPACITY
-    @max_bit_number = plsql.bmap_builder.C_SEGMENT_CAPACITY
+    @bits_in_segment = plsql.bmap_segment_builder.C_ELEMENT_CAPACITY
+    @max_bit_number = plsql.bmap_segment_builder.C_SEGMENT_CAPACITY
     plsql.execute <<-SQL
-      CREATE OR REPLACE FUNCTION to_bin_int_list(p_bit_numbers_list INT_LIST) RETURN bmap_builder.BIN_INT_LIST IS
-        result bmap_builder.BIN_INT_LIST := bmap_builder.BIN_INT_LIST();
+      CREATE OR REPLACE FUNCTION to_bin_int_list(p_bit_numbers_list INT_LIST) RETURN bmap_segment_builder.BIN_INT_LIST IS
+        result bmap_segment_builder.BIN_INT_LIST := bmap_segment_builder.BIN_INT_LIST();
       BEGIN
         IF p_bit_numbers_list IS NULL THEN RETURN NULL; END IF;
         FOR i IN 1 .. CARDINALITY(p_bit_numbers_list) LOOP
@@ -16,7 +16,7 @@ RSpec.shared_context 'shared bitmap builder' do
       END;
     SQL
     plsql.execute <<-SQL
-      CREATE OR REPLACE FUNCTION to_int_list(p_bit_numbers_list bmap_builder.BIN_INT_LIST) RETURN INT_LIST IS
+      CREATE OR REPLACE FUNCTION to_int_list(p_bit_numbers_list bmap_segment_builder.BIN_INT_LIST) RETURN INT_LIST IS
         result INT_LIST := INT_LIST();
       BEGIN
         FOR i IN 1 .. CARDINALITY(p_bit_numbers_list) LOOP
@@ -28,7 +28,7 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_decode_test(p_bit_numbers_list INT_LIST) RETURN INT_LIST IS
       BEGIN
-        RETURN to_int_list(bmap_builder.decode_bmap_segment( bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) ));
+        RETURN to_int_list(bmap_segment_builder.decode_bmap_segment( bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) ));
       END;
     SQL
 
@@ -36,10 +36,10 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION encode_bitand_test(p_left INT_LIST, p_right INT_LIST) RETURN INT_LIST IS
       BEGIN
         RETURN to_int_list(
-                 bmap_builder.decode_bmap_segment(
-                   bmap_builder.segment_bit_and(
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_right) )
+                 bmap_segment_builder.decode_bmap_segment(
+                   bmap_segment_builder.segment_bit_and(
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_right) )
                    )
                  )
                );
@@ -50,10 +50,10 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION encode_bitor_test(p_left INT_LIST, p_right INT_LIST) RETURN INT_LIST IS
       BEGIN
         RETURN to_int_list(
-                 bmap_builder.decode_bmap_segment(
-                   bmap_builder.segment_bit_or(
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_right) )
+                 bmap_segment_builder.decode_bmap_segment(
+                   bmap_segment_builder.segment_bit_or(
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_right) )
                    )
                  )
                );
@@ -62,11 +62,11 @@ RSpec.shared_context 'shared bitmap builder' do
 
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_bmap_segment(p_bit_numbers_list INT_LIST, p_bit_map_to_build INT_LIST) RETURN INT_LIST IS
-        bit_map bmap_builder.BMAP_SEGMENT;
+        bit_map bmap_segment_builder.BMAP_SEGMENT;
       BEGIN
-        bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_map_to_build), bit_map );
-        bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list), bit_map );
-        RETURN to_int_list( bmap_builder.decode_bmap_segment( bit_map ) );
+        bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_map_to_build), bit_map );
+        bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list), bit_map );
+        RETURN to_int_list( bmap_segment_builder.decode_bmap_segment( bit_map ) );
       END;
     SQL
 
@@ -74,10 +74,10 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION encode_bitminus_test(p_left INT_LIST, p_right INT_LIST) RETURN INT_LIST IS
       BEGIN
         RETURN to_int_list(
-                 bmap_builder.decode_bmap_segment(
-                   bmap_builder.segment_bit_minus(
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
-                     bmap_builder.encode_bmap_segment( to_bin_int_list(p_right) )
+                 bmap_segment_builder.decode_bmap_segment(
+                   bmap_segment_builder.segment_bit_minus(
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_left) ),
+                     bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_right) )
                    )
                  )
                );
@@ -87,28 +87,28 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_and_insert_bmap( p_bit_numbers_list INT_LIST ) RETURN INTEGER IS
       BEGIN
-        RETURN bmap_persist.insertBitmapLst( bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
+        RETURN bmap_persist.insertBitmapLst( bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
       END;
     SQL
 
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_and_update_bmap( p_key_id INTEGER, p_bit_numbers_list INT_LIST ) RETURN INTEGER IS
       BEGIN
-        RETURN bmap_persist.updateBitmapLst( p_key_id, bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
+        RETURN bmap_persist.updateBitmapLst( p_key_id, bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
       END;
     SQL
 
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION encode_and_set_bmap( p_bitmap_key IN OUT INTEGER, p_bit_numbers_list INT_LIST ) RETURN INTEGER IS
       BEGIN
-        RETURN bmap_persist.setBitmapLst( p_bitmap_key, bmap_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
+        RETURN bmap_persist.setBitmapLst( p_bitmap_key, bmap_segment_builder.encode_bmap_segment( to_bin_int_list(p_bit_numbers_list) ) );
       END;
     SQL
 
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION select_and_decode_bmap( p_bitmap_key INTEGER  ) RETURN INT_LIST IS
       BEGIN
-        RETURN to_int_list(bmap_builder.decode_bmap_segment( bmap_persist.getBitmapLst(  p_bitmap_key ) ));
+        RETURN to_int_list(bmap_segment_builder.decode_bmap_segment( bmap_persist.getBitmapLst(  p_bitmap_key ) ));
       END;
     SQL
 

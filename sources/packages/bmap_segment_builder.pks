@@ -5,7 +5,7 @@ ALTER SESSION SET PLSQL_CODE_TYPE = NATIVE;
 ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 /
 
-CREATE OR REPLACE PACKAGE bmap_builder AS
+CREATE OR REPLACE PACKAGE bmap_segment_builder AS
 
 
   /**
@@ -45,20 +45,57 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
    * An element is a BINARY_INTEGER value that represents a bitmap.
 
    */
+  --segment parameters
+  C_ELEMENT_CAPACITY CONSTANT BINARY_INTEGER := 30;
+  C_SEGMENT_HEIGHT   CONSTANT BINARY_INTEGER := 3;
+  C_SEGMENT_CAPACITY CONSTANT BINARY_INTEGER := POWER( C_ELEMENT_CAPACITY, C_SEGMENT_HEIGHT );
 
---bitmap parameters
-  C_BITMAP_HEIGHT    CONSTANT BINARY_INTEGER := 3;
-  C_MAX_BITMAP_SIZE  CONSTANT INTEGER        := POWER( bmap_segment_builder.C_SEGMENT_CAPACITY, C_BITMAP_HEIGHT );
+  TYPE BIN_INT_LIST          IS TABLE OF BINARY_INTEGER;
+  TYPE BMAP_SEGMENT_LEVEL    IS TABLE OF BINARY_INTEGER INDEX BY BINARY_INTEGER;
+  TYPE BMAP_SEGMENT          IS TABLE OF BMAP_SEGMENT_LEVEL INDEX BY BINARY_INTEGER;
 
-  TYPE BIN_INT_ARRAY         IS TABLE OF BINARY_INTEGER INDEX BY BINARY_INTEGER;
-  TYPE BIN_INT_MATRIX        IS TABLE OF bmap_segment_builder.BIN_INT_LIST;
-
-  PROCEDURE build_bitmap(
-    p_bit_list_crsr SYS_REFCURSOR,
-    p_bitmap_key INTEGER
+  PROCEDURE encode_bmap_segment(
+    p_bit_no_list  BIN_INT_LIST,
+    p_bmap_segment IN OUT NOCOPY BMAP_SEGMENT
   );
 
-END bmap_builder;
+  FUNCTION encode_bmap_segment(
+    p_bit_no_list BIN_INT_LIST
+  ) RETURN BMAP_SEGMENT;
+
+  FUNCTION decode_bmap_segment(
+    p_bitmap_tree BMAP_SEGMENT
+  ) RETURN BIN_INT_LIST;
+
+  FUNCTION segment_bit_and(
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT;
+
+  FUNCTION segment_bit_or(
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT;
+
+  FUNCTION segment_bit_minus(
+    p_bmap_left  BMAP_SEGMENT,
+    p_bmap_right BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT;
+
+  FUNCTION convert_for_storage(
+    p_bitmap_list BMAP_SEGMENT
+  ) RETURN STOR_BMAP_SEGMENT;
+
+  PROCEDURE convert_for_storage(
+    p_bitmap_list BMAP_SEGMENT,
+    p_level_list  IN OUT NOCOPY STOR_BMAP_SEGMENT
+  );
+
+  FUNCTION convert_for_processing(
+    p_bitmap_list STOR_BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT;
+
+END bmap_segment_builder;
 /
 
 SHOW ERRORS

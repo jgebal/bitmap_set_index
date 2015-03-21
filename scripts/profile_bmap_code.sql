@@ -74,11 +74,6 @@ BEGIN
   bit_map := bmap_builder.convert_for_processing(storage_bitmap);
   DBMS_PROFILER.STOP_PROFILER;
 
-  DBMS_PROFILER.START_PROFILER(
-      'bmap_persist.insertBitmapLst ' || to_char( systimestamp, 'YYYY-MM-DD HH24:MI:SSXFF' ) );
-  x := bmap_persist.insertBitmapLst(bit_map);
-  DBMS_PROFILER.STOP_PROFILER;
-
 END;
 /
 

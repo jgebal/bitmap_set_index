@@ -64,12 +64,6 @@ BEGIN
   END LOOP;
   DBMS_OUTPUT.PUT_LINE( 'bmap_builder.convert_for_processing secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
 
-  t := DBMS_UTILITY.get_time;
-  FOR i IN 1 .. loops LOOP
-    x := bmap_persist.insertBitmapLst(bit_map);
-  END LOOP;
-  DBMS_OUTPUT.PUT_LINE( 'bmap_persist.insertBitmapLst secs: ' || ( DBMS_UTILITY.get_time - t )/100 );
-
   ROLLBACK;
 END;
 /
