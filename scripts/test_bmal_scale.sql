@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION bmap_list_generator(p_bits INTEGER, p_density INTEGER
 DECLARE
   c                       SYS_REFCURSOR;
   t                       NUMBER := dbms_utility.get_time;
-  C_DATASET_SIZE CONSTANT INTEGER := 40000000;
+  C_DATASET_SIZE CONSTANT INTEGER := 100000000;
   C_OFFSET       CONSTANT INTEGER := 100000000000;
 BEGIN
   OPEN c FOR SELECT COLUMN_VALUE + C_OFFSET bit_no FROM TABLE ( bmap_list_generator( C_DATASET_SIZE, 1) );
@@ -30,3 +30,9 @@ END;
 --Took: 100,37 sec, with dataset:20000000
 --Took: 99,62 sec, with dataset:20000000
 --Took: 200,59 sec, with dataset:40000000
+--Took: 96,43 sec, with dataset:20000000
+--Took: 192,59 sec, with dataset:40000000
+--Took: 480,26 sec, with dataset:100000000
+--Took: 704.73 sec, with dataset:100000000 on Oracle 12 VM
+--Took: 826.52 sec, with dataset:100000000 on Oracle 12 VM
+--Took: 703.98 sec, with dataset:100000000 on Oracle 12 VM
