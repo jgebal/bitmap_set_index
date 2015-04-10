@@ -1,7 +1,3 @@
-select count(1) from companies;
-select count(1) from customers;
-select count(1) from services;
-
 DROP TABLE customers;
 DROP TABLE companies;
 DROP TABLE customer_services;
