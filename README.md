@@ -2,42 +2,41 @@
 
 Set-based Hierarchical bitmap index implementation in Oracle for set based operations.
 
-The project aims to allow simplification and performance improvement for queries that aim to answer queries that need to compare large sets of similar data.
- Fir example consider the queries like:
-- List all employees that like the same fruits that Mike likes.
-- List all employees that like some part of fruits that Mike likes.
-- List all employees that like exactly the same fruit that Mike likes.
-You may want to compare sets (buckets) containing comparable data, that is grouped into buckets.
-The typical SQL query to answer the above could be something like the one below:
+The purpose of the project is to provide a set-based operator and index that gives simple syntax and huge performance gains on set-based comparison queries.
+Sample queries that use set-based comparison are:
+- List all employees that like exactly the same things as Mike.
+- List all employees that like some part of things as Mike.
+- Order the employees by similarity of likes
+- List all employees that like totally different fruits than Mike.
+If you need to compare data-sets containing comparable data, the project might become handy.
+A classic SQL-approach query to list all employees ordered by likes similarity would be like the one below:
 ```sql
-SELECT first_name
-FROM employees
-WHERE employee_id
-      IN (SELECT other_l.employee_id
-          FROM employees_likes other_l
-            JOIN employees_likes mikes_l
-              ON (other_l.employee_id != mikes_l.employee_id
-                  AND other_l.fruit_id = mikes_l.fruit_id
-                  AND other_l.season_id = mikes_l.season_id)
-            JOIN employees mike
-              ON (mike.customer_id = mikes_l.customer_id)
-          WHERE mike.first_name = 'Mike'
-          GROUP BY other_l.employee_id
-          HAVING count(1)
-                 = (SELECT count(1) FROM employees_likes mike
-            JOIN employees mike
-              ON (mike.customer_id = mikes_l.customer_id)
-          WHERE mike.first_name = 'Mike'
-          )
-);
+WITH likes_counted AS
+  (
+  SELECT count(*) OVER (PARTITION BY employee_id) likes_count,
+        el.*
+   FROM employees_likes el
+  )
+SELECT elc1.employee_id, elc2.employee_id, count(1)*100/elc1.likes_count similarity
+  FROM likes_counted elc1
+  JOIN likes_counted elc2
+    ON elc1.like_id = elc2.like_id
+   AND elc1.employee_id > elc2.employee_id
+  GROUP BY elc1.employee_id, elc2.employee_id, elc1.likes_count
+ ORDER BY similarity DESC;
 ```
 
 The project uses hierarchical bitmap index approach for set-based operations, as described here: http://www.cs.put.poznan.pl/mmorzy/papers/adbis03.pdf
 
 The plan is to implement the index as a generic, Oracle-managed object, that will be using Oracle Extensible Indexing, as described here:
 http://docs.oracle.com/cd/B28359_01/appdev.111/b28425/ext_idx_frmwork.htm
+and here:
+http://docs.oracle.com/cd/B19306_01/server.102/b14200/ap_examples001.htm
+and with API described here:
+http://docs.oracle.com/cd/B28359_01/appdev.111/b28425/ext_idx_ref.htm
 
-The project is build and tested using Oracle 11g XE and ruby-plsql-spec framework for unit testing.
+The project is build and tested using Oracle 11g XE and ruby-plsql, ruby-plsql-spec framework for unit testing.
+https://github.com/rsim/ruby-plsql
 https://github.com/rsim/ruby-plsql-spec
 
 ----
