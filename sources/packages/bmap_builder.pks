@@ -5,7 +5,7 @@ ALTER SESSION SET PLSQL_CODE_TYPE = NATIVE;
 ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 /
 
-CREATE OR REPLACE PACKAGE bmap_builder AS
+CREATE OR REPLACE PACKAGE bmap_builder AUTHID CURRENT_USER AS
 
 
   /**
@@ -53,9 +53,9 @@ CREATE OR REPLACE PACKAGE bmap_builder AS
   TYPE BIN_INT_ARRAY         IS TABLE OF BINARY_INTEGER INDEX BY BINARY_INTEGER;
   TYPE BIN_INT_MATRIX        IS TABLE OF bmap_segment_builder.BIN_INT_LIST;
 
-  PROCEDURE build_bitmap(
+  PROCEDURE build_bitmaps(
     p_bit_list_crsr SYS_REFCURSOR,
-    p_bitmap_key INTEGER
+    p_stor_table_name VARCHAR2
   );
 
 END bmap_builder;

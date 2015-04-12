@@ -1,4 +1,3 @@
-DROP TABLE EMPLOYEES;
 --------------------------------------------------------
 --  DDL for Table EMPLOYEES
 --------------------------------------------------------
@@ -150,3 +149,4 @@ Insert into EMPLOYEES (EMPLOYEE_ID,FIRST_NAME,LAST_NAME,EMAIL,PHONE_NUMBER,HIRE_
 Insert into EMPLOYEES (EMPLOYEE_ID,FIRST_NAME,LAST_NAME,EMAIL,PHONE_NUMBER,HIRE_DATE) values (206,'William','Gietz','WGIETZ','515.123.8181',to_date('07-JUN-02','DD-MON-RR'));
 
 commit;
+SET DEFINE ON;

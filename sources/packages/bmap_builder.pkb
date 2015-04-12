@@ -7,35 +7,25 @@ ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 
 CREATE OR REPLACE PACKAGE BODY bmap_builder AS
 
---PRIVATE SPECIFICATIONS
-
-  ge_subscript_beyond_count EXCEPTION;
-  PRAGMA EXCEPTION_INIT(ge_subscript_beyond_count,-6533);
-
-  PROCEDURE init_if_needed( p_int_aarray IN OUT NOCOPY BIN_INT_ARRAY, p_height BINARY_INTEGER := C_BITMAP_HEIGHT ) IS
+  PROCEDURE initialize( p_int_aarray IN OUT NOCOPY BIN_INT_ARRAY, p_height BINARY_INTEGER := C_BITMAP_HEIGHT ) IS
     BEGIN
-      IF p_int_aarray IS NULL OR p_int_aarray.COUNT = 0 THEN
-        FOR i IN 1 .. p_height LOOP
-          p_int_aarray( i ) := NULL;
-        END LOOP;
-      END IF;
-    END init_if_needed;
+      FOR i IN 1 .. p_height LOOP
+        p_int_aarray( i ) := NULL;
+      END LOOP;
+    END initialize;
 
-  PROCEDURE init_if_needed( p_int_matrix IN OUT NOCOPY BIN_INT_MATRIX, p_height BINARY_INTEGER := C_BITMAP_HEIGHT ) IS
+  PROCEDURE initialize( p_int_matrix IN OUT NOCOPY BIN_INT_MATRIX, p_height BINARY_INTEGER := C_BITMAP_HEIGHT ) IS
     x bmap_segment_builder.BIN_INT_LIST := bmap_segment_builder.BIN_INT_LIST();
     BEGIN
-      IF p_int_matrix IS NULL THEN
-        p_int_matrix := BIN_INT_MATRIX();
-      END IF;
-      IF CARDINALITY(p_int_matrix) = 0 THEN
-        FOR i IN 1 .. p_height LOOP
-          p_int_matrix.EXTEND;
-          p_int_matrix( i ) := x;
-        END LOOP;
-      END IF;
-    END init_if_needed;
+      p_int_matrix := BIN_INT_MATRIX();
+      FOR i IN 1 .. p_height LOOP
+        p_int_matrix.EXTEND;
+        p_int_matrix( i ) := x;
+      END LOOP;
+    END initialize;
 
   PROCEDURE build_and_store_bmap_segment(
+    p_stor_table_name    VARCHAR2,
     p_bitmap_key         INTEGER,
     p_bit_elem_list      INT_LIST,
     p_elem_idx           BINARY_INTEGER,
@@ -54,6 +44,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
         bmap_segment_builder.encode_bmap_segment( p_segment_int_list( p_segment_V_pos ), v_encoded_segment );
         bmap_segment_builder.convert_for_storage( v_encoded_segment, v_segment );
         bmap_persist.insertBitmapSegment(
+            p_stor_table_name,
             p_bitmap_key,
             p_segment_V_pos,
             COALESCE( p_segment_H_pos_lst( p_segment_V_pos ), v_segment_H_pos ),
@@ -62,7 +53,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
         v_parent_list.EXTEND;
         v_parent_list( v_parent_list.LAST ) := v_segment_H_pos;
         IF p_segment_V_pos < C_BITMAP_HEIGHT THEN
-          build_and_store_bmap_segment( p_bitmap_key, v_parent_list, v_parent_list.LAST, p_segment_H_pos_lst, p_segment_int_list, p_force_store, p_segment_V_pos + 1 );
+          build_and_store_bmap_segment( p_stor_table_name, p_bitmap_key, v_parent_list, v_parent_list.LAST, p_segment_H_pos_lst, p_segment_int_list, p_force_store, p_segment_V_pos + 1 );
         END IF;
         p_segment_int_list( p_segment_V_pos ).DELETE;
       ELSE
@@ -72,31 +63,37 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       p_segment_H_pos_lst( p_segment_V_pos ) := v_segment_H_pos;
     END build_and_store_bmap_segment;
 
-  PROCEDURE build_bitmap(
+  PROCEDURE build_bitmaps(
     p_bit_list_crsr SYS_REFCURSOR,
-    p_bitmap_key INTEGER
+    p_stor_table_name VARCHAR2
   ) IS
     v_segment_int_list   BIN_INT_MATRIX;
+    v_bitmap_key_lst     VARCHAR2_LIST;
     v_bit_elem_list      INT_LIST;
     v_segment_H_pos_lst  BIN_INT_ARRAY;
-    v_segment_V_pos      BINARY_INTEGER := 1;
+    v_prev_bmap_key      VARCHAR2(4000);
     BEGIN
-      PRAGMA INLINE (init_if_needed, 'YES');
-      init_if_needed( v_segment_int_list );
-      PRAGMA INLINE (init_if_needed, 'YES');
-      init_if_needed( v_segment_H_pos_lst );
+      PRAGMA INLINE (initialize, 'YES');
+      initialize( v_segment_int_list );
+      PRAGMA INLINE (initialize, 'YES');
+      initialize( v_segment_H_pos_lst );
       LOOP
-        FETCH p_bit_list_crsr BULK COLLECT INTO v_bit_elem_list LIMIT bmap_segment_builder.C_SEGMENT_CAPACITY;
+        FETCH p_bit_list_crsr BULK COLLECT INTO v_bitmap_key_lst, v_bit_elem_list LIMIT bmap_segment_builder.C_SEGMENT_CAPACITY;
         EXIT WHEN CARDINALITY( v_bit_elem_list ) = 0;
         FOR i IN v_bit_elem_list.FIRST .. v_bit_elem_list.LAST LOOP
-          build_and_store_bmap_segment( p_bitmap_key, v_bit_elem_list, i, v_segment_H_pos_lst, v_segment_int_list );
+          IF v_bitmap_key_lst(i) != v_prev_bmap_key THEN
+            build_and_store_bmap_segment( p_stor_table_name, v_prev_bmap_key, v_bit_elem_list, i, v_segment_H_pos_lst, v_segment_int_list, TRUE );
+            PRAGMA INLINE (initialize, 'YES');
+            initialize( v_segment_int_list );
+            PRAGMA INLINE (initialize, 'YES');
+            initialize( v_segment_H_pos_lst );
+          END IF;
+          build_and_store_bmap_segment( p_stor_table_name, v_bitmap_key_lst(i), v_bit_elem_list, i, v_segment_H_pos_lst, v_segment_int_list );
+          v_prev_bmap_key := v_bitmap_key_lst(i);
         END LOOP;
         EXIT WHEN p_bit_list_crsr%NOTFOUND;
       END LOOP;
-      IF CARDINALITY( v_segment_int_list ) > 0 THEN
-        build_and_store_bmap_segment( p_bitmap_key, v_bit_elem_list, v_bit_elem_list.LAST, v_segment_H_pos_lst, v_segment_int_list, TRUE );
-      END IF;
-    END build_bitmap;
+    END build_bitmaps;
 
 END bmap_builder;
 /

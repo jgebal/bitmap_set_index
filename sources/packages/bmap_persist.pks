@@ -5,9 +5,10 @@ ALTER SESSION SET PLSQL_CODE_TYPE = NATIVE;
 ALTER SESSION SET PLSQL_OPTIMIZE_LEVEL = 3;
 /
 
-CREATE OR REPLACE PACKAGE bmap_persist AS
+CREATE OR REPLACE PACKAGE bmap_persist AUTHID CURRENT_USER AS
 
   PROCEDURE insertBitmapSegment(
+    p_stor_table_name VARCHAR2,
     p_bitmap_key    INTEGER,
     p_segment_V_pos INTEGER,
     p_segment_H_pos INTEGER,

@@ -19,8 +19,8 @@ DECLARE
   C_DATASET_SIZE CONSTANT INTEGER := 100000000;
   C_OFFSET       CONSTANT INTEGER := 100000000000;
 BEGIN
-  OPEN c FOR SELECT COLUMN_VALUE + C_OFFSET bit_no FROM TABLE ( bmap_list_generator( C_DATASET_SIZE, 1) );
-  bmap_builder.build_bitmap( c, 100 );
+  OPEN c FOR SELECT 100, COLUMN_VALUE + C_OFFSET bit_no FROM TABLE ( bmap_list_generator( C_DATASET_SIZE, 1) );
+  bmap_builder.build_bitmaps( c, 'EMPLOYEES_LIKES$BS_T' );
   CLOSE c;
   dbms_output.put_line( 'Took: ' || ( dbms_utility.get_time - t ) / 100 || ' sec, with dataset:' || C_DATASET_SIZE );
 END;

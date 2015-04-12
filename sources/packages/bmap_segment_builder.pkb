@@ -262,7 +262,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
       ELSE
         p_bmap_left( p_level ).DELETE( p_node );
       END IF;
-      EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
+    EXCEPTION WHEN NO_DATA_FOUND OR ge_subscript_beyond_count THEN
       NULL;
     END segment_level_bit_minus;
 
