@@ -13,10 +13,3 @@
 @@../sources/packages/bmap_builder.pkb
 @@../sources/packages/bmap_persist.pkb
 @@../sources/packages/bmap_maint.pkb
-
-DEF NUMBER_OF_LIKES = 100000;
-DEF MIN_NUMBER_OF_LIKES_FOR_EMP = 10000;
-
-@@employees_sample.sql
-@@likes_sample.sql
-@@employees_likes_sample.sql
