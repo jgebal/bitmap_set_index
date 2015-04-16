@@ -46,6 +46,7 @@ CREATE OR REPLACE PACKAGE bmap_segment_builder AUTHID CURRENT_USER AS
 
    */
   --segment parameters
+  --ELEMENT CAPACITY is at maximum 30, this is because we use binary integer datatype and operating on it up to value of 2^30 is simplest
   C_ELEMENT_CAPACITY CONSTANT BINARY_INTEGER := 30;
   C_SEGMENT_HEIGHT   CONSTANT BINARY_INTEGER := 3;
   C_SEGMENT_CAPACITY CONSTANT BINARY_INTEGER := POWER( C_ELEMENT_CAPACITY, C_SEGMENT_HEIGHT );
@@ -58,6 +59,10 @@ CREATE OR REPLACE PACKAGE bmap_segment_builder AUTHID CURRENT_USER AS
     p_bit_no_list  BIN_INT_LIST,
     p_bmap_segment IN OUT NOCOPY BMAP_SEGMENT
   );
+
+  FUNCTION encode_and_convert(
+    p_bit_no_list BIN_INT_LIST
+  ) RETURN STOR_BMAP_SEGMENT;
 
   FUNCTION encode_bmap_segment(
     p_bit_no_list BIN_INT_LIST
@@ -93,6 +98,11 @@ CREATE OR REPLACE PACKAGE bmap_segment_builder AUTHID CURRENT_USER AS
 
   FUNCTION convert_for_processing(
     p_bitmap_list STOR_BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT;
+
+  FUNCTION segment_bit_and(
+    p_bmap_left  STOR_BMAP_SEGMENT,
+    p_bmap_right STOR_BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT;
 
 END bmap_segment_builder;

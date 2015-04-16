@@ -14,15 +14,13 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     p_segment_H_pos INTEGER,
     p_segment       STOR_BMAP_SEGMENT
   ) IS
-    v_bmap_anydata ANYDATA;
   BEGIN
-    v_bmap_anydata := anydata.ConvertCollection(  p_segment );
     EXECUTE IMMEDIATE
      'INSERT
         INTO '||p_stor_table_name||'
              ( BITMAP_KEY, BMAP_H_POS, BMAP_V_POS, BMAP )
-      VALUES ( :p_bitmap_key, :p_segment_H_pos, :p_segment_V_pos, :v_bmap_anydata )'
-    USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos, v_bmap_anydata;
+      VALUES ( :p_bitmap_key, :p_segment_H_pos, :p_segment_V_pos, :v_bmap_varray )'
+    USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos, p_segment;
   END insertBitmapSegment;
 
 END bmap_persist;

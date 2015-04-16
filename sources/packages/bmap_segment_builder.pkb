@@ -360,7 +360,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     v_level_list BMAP_SEGMENT;
     j            BINARY_INTEGER;
     BEGIN
-      IF NOT (p_bitmap_list IS NULL OR CARDINALITY(p_bitmap_list) = 0) THEN
+      IF NOT (p_bitmap_list IS NULL OR p_bitmap_list.COUNT = 0) THEN
         FOR i IN p_bitmap_list.FIRST .. p_bitmap_list.LAST LOOP
           FOR j IN p_bitmap_list(i).FIRST .. p_bitmap_list(i).LAST LOOP
             v_level_list(i)(p_bitmap_list(i)(j).node_index) := p_bitmap_list(i)(j).node_value;
@@ -369,6 +369,24 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
       END IF;
       RETURN v_level_list;
     END convert_for_processing;
+
+  FUNCTION segment_bit_and(
+    p_bmap_left  STOR_BMAP_SEGMENT,
+    p_bmap_right STOR_BMAP_SEGMENT
+  ) RETURN BMAP_SEGMENT
+  IS
+    BEGIN
+      RETURN segment_bit_and( convert_for_processing( p_bmap_left ), convert_for_processing( p_bmap_right ) );
+    END segment_bit_and;
+
+  FUNCTION encode_and_convert(
+    p_bit_no_list BIN_INT_LIST
+  ) RETURN STOR_BMAP_SEGMENT
+  IS
+    BEGIN
+      RETURN convert_for_storage( encode_bmap_segment( p_bit_no_list ) );
+    END encode_and_convert;
+
 
 /**
  * Package constant initialization function - do not modify this code

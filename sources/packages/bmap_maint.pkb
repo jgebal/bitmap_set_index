@@ -49,7 +49,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_maint AS
             BITMAP_KEY NUMBER(6,0),
             BMAP_V_POS INTEGER,
             BMAP_H_POS INTEGER,
-            BMAP       ANYDATA)';
+            BMAP       STOR_BMAP_SEGMENT)';
 
       OPEN v_crsr FOR
       'SELECT DISTINCT t.'||C_BITMAP_KEY||' bitmap_key, bit_pos
@@ -92,4 +92,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_maint AS
     END;
 
 END bmap_maint;
+/
+
+SHOW ERRORS
 /
