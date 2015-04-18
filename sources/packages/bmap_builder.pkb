@@ -33,7 +33,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
   ) IS
     BEGIN
       IF p_segment_H_pos IS NOT NULL AND p_segment_V_pos IS NOT NULL AND p_bitmap_key IS NOT NULL THEN
-        bmap_persist.insertBitmapSegment( p_stor_table_name, p_bitmap_key, p_segment_V_pos, p_segment_H_pos, bmap_segment_builder.encode_and_convert( p_segment ) );
+        bmap_persist.insert_segment( p_stor_table_name, p_bitmap_key, p_segment_V_pos, p_segment_H_pos, bmap_segment_builder.encode_and_convert( p_segment ) );
       END IF;
     END store_bmap_segment;
 
@@ -49,39 +49,47 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       store_bmap_segment( p_stor_table_name, p_bitmap_key, p_segment_H_pos_lst( p_segment_V_pos ), p_segment_V_pos, p_segment_value_list( p_segment_V_pos ) );
       IF p_segment_V_pos < C_BITMAP_HEIGHT THEN
         flush_bmap_segments( p_stor_table_name, p_bitmap_key, p_segment_value_list, p_segment_H_pos_lst, p_segment_V_pos + 1 );
+      ELSE
+        PRAGMA INLINE (initialize, 'YES');
+        initialize( p_segment_H_pos_lst );
+        PRAGMA INLINE (initialize, 'YES');
+        initialize( p_segment_value_list );
       END IF;
-      PRAGMA INLINE (initialize, 'YES');
-      initialize( p_segment_H_pos_lst );
-      PRAGMA INLINE (initialize, 'YES');
-      initialize( p_segment_value_list );
     END flush_bmap_segments;
 
   PROCEDURE build_or_store_bmap_segment(
     p_stor_table_name               VARCHAR2,
     p_bitmap_key                    INTEGER,
     p_bit_pos                       INTEGER,
-    p_processing_segm_H_pos_lst IN OUT NOCOPY BIN_INT_ARRAY,
+    p_processing_segm_H_pos_lst     IN OUT NOCOPY BIN_INT_ARRAY,
     p_segment_int_list              IN OUT NOCOPY BIN_INT_MATRIX,
     p_current_segment_V_pos         BINARY_INTEGER := 1
   ) IS
     v_current_segment_H_pos BINARY_INTEGER;
+    v_new_segment_H_pos     BINARY_INTEGER := CEIL( p_bit_pos / C_SEGMENT_CAPACITY );
     v_is_segment_change     BOOLEAN;
     v_is_new_bmap           BOOLEAN;
     BEGIN
       v_is_new_bmap           :=           p_processing_segm_H_pos_lst( p_current_segment_V_pos ) IS NULL;
-      v_is_segment_change     :=         ( p_processing_segm_H_pos_lst( p_current_segment_V_pos )!=CEIL( p_bit_pos / C_SEGMENT_CAPACITY ) );
-      v_current_segment_H_pos := COALESCE( p_processing_segm_H_pos_lst( p_current_segment_V_pos ), CEIL( p_bit_pos / C_SEGMENT_CAPACITY ) );
+      v_is_segment_change     :=         ( p_processing_segm_H_pos_lst( p_current_segment_V_pos )!= v_new_segment_H_pos );
+      v_current_segment_H_pos := COALESCE( p_processing_segm_H_pos_lst( p_current_segment_V_pos ),  v_new_segment_H_pos );
 
-      IF p_current_segment_V_pos < C_BITMAP_HEIGHT THEN
+
+      IF v_is_new_bmap OR v_is_segment_change THEN
+        --build parent segment
+        IF p_current_segment_V_pos < C_BITMAP_HEIGHT THEN
           build_or_store_bmap_segment( p_stor_table_name, p_bitmap_key, v_current_segment_H_pos, p_processing_segm_H_pos_lst, p_segment_int_list, p_current_segment_V_pos + 1 );
+        END IF;
+        --save currently build segment, if a new segment is to be processed now
+        IF v_is_segment_change THEN
+          store_bmap_segment( p_stor_table_name, p_bitmap_key, v_current_segment_H_pos, p_current_segment_V_pos, p_segment_int_list( p_current_segment_V_pos ) );
+          p_segment_int_list( p_current_segment_V_pos ).DELETE;
+        END IF;
       END IF;
-      IF v_is_segment_change THEN
-        store_bmap_segment( p_stor_table_name, p_bitmap_key, v_current_segment_H_pos, p_current_segment_V_pos, p_segment_int_list( p_current_segment_V_pos ) );
-        p_segment_int_list( p_current_segment_V_pos ).DELETE;
-      END IF;
+      --add segment element to segment elements list
       p_segment_int_list( p_current_segment_V_pos ).EXTEND;
-      p_segment_int_list( p_current_segment_V_pos )( p_segment_int_list( p_current_segment_V_pos ).LAST ) := MOD( p_bit_pos - 1, C_SEGMENT_CAPACITY ) + 1;
-      p_processing_segm_H_pos_lst( p_current_segment_V_pos ) := v_current_segment_H_pos;
+      p_segment_int_list( p_current_segment_V_pos )( p_segment_int_list( p_current_segment_V_pos ).LAST ) := MOD( p_bit_pos, C_SEGMENT_CAPACITY );
+      p_processing_segm_H_pos_lst( p_current_segment_V_pos ) := v_new_segment_H_pos;
 
     END build_or_store_bmap_segment;
 

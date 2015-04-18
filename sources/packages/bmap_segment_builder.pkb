@@ -111,10 +111,11 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     END encode_bmap_segment;
 
 
-  FUNCTION decode_bmap_element(
-    p_element_value BINARY_INTEGER
-  ) RETURN BIN_INT_LIST IS
-    v_bit_numbers_list BIN_INT_LIST := BIN_INT_LIST( );
+  PROCEDURE decode_bmap_element(
+    p_element_value   BINARY_INTEGER,
+    p_bit_number_list IN OUT NOCOPY BIN_INT_LIST,
+    p_bit_pos_offset  BINARY_INTEGER DEFAULT 0
+  ) IS
     v_byte_values_list BMAP_SEGMENT_LEVEL;
     v_remaining_value  BINARY_INTEGER;
     v_bit_pos          BINARY_INTEGER := 0;
@@ -126,13 +127,21 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
         IF v_byte_values_idx > 0 THEN
           v_byte_values_list := gc_bit_values_in_byte( v_byte_values_idx );
           FOR i IN v_byte_values_list.FIRST .. v_byte_values_list.LAST LOOP
-            v_bit_numbers_list.EXTEND;
-            v_bit_numbers_list( v_bit_numbers_list.LAST ) := v_byte_values_list(i)+v_bit_pos;
+            p_bit_number_list.EXTEND;
+            p_bit_number_list( p_bit_number_list.LAST ) := v_byte_values_list(i)+v_bit_pos+p_bit_pos_offset;
           END LOOP;
         END IF;
         v_remaining_value := FLOOR(v_remaining_value / 1024);
         v_bit_pos := v_bit_pos + 10;
       END LOOP;
+    END decode_bmap_element;
+
+  FUNCTION decode_bmap_element(
+    p_element_value  BINARY_INTEGER
+  ) RETURN BIN_INT_LIST IS
+    v_bit_numbers_list BIN_INT_LIST := BIN_INT_LIST( );
+    BEGIN
+      decode_bmap_element(p_element_value,v_bit_numbers_list);
       RETURN v_bit_numbers_list;
     END decode_bmap_element;
 
@@ -143,19 +152,15 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     v_byte_values_list BIN_INT_LIST;
     v_element_position BINARY_INTEGER;
     v_remaining_value  BINARY_INTEGER;
-    v_bit_pos          BINARY_INTEGER;
+    v_bit_pos_offset   BINARY_INTEGER;
     v_byte_values_idx  BINARY_INTEGER;
     BEGIN
       v_element_position := p_bmap_element_list.FIRST;
       LOOP
         EXIT WHEN v_element_position IS NULL;
-        v_bit_pos := C_ELEMENT_CAPACITY * ( v_element_position - 1 );
+        v_bit_pos_offset := C_ELEMENT_CAPACITY * ( v_element_position - 1 );
 
-        v_byte_values_list := decode_bmap_element( p_bmap_element_list( v_element_position ) );
-        FOR i IN 1 .. v_byte_values_list.COUNT LOOP
-          v_bit_numbers_list.EXTEND;
-          v_bit_numbers_list( v_bit_numbers_list.LAST ) := v_byte_values_list(i) + v_bit_pos;
-        END LOOP;
+        decode_bmap_element( p_bmap_element_list( v_element_position ), v_bit_numbers_list, v_bit_pos_offset );
         v_element_position := p_bmap_element_list.NEXT( v_element_position );
       END LOOP;
       RETURN v_bit_numbers_list;

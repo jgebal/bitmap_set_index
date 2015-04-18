@@ -14,10 +14,6 @@ CREATE OR REPLACE PACKAGE bmap_oper AUTHID CURRENT_USER AS
     p_right_bitmap_key NUMBER
   ) RETURN INTEGER;
 
-  FUNCTION int_list_to_csv(
-    p_int_lst bmap_segment_builder.BIN_INT_LIST
-  ) RETURN VARCHAR2 DETERMINISTIC;
-
 END bmap_oper;
 /
 
