@@ -55,7 +55,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_maint AS
             BITMAP_KEY NUMBER(6,0),
             BMAP_V_POS INTEGER,
             BMAP_H_POS INTEGER,
-            BMAP       USR.STOR_BMAP_SEGMENT)';
+            BMAP       STOR_BMAP_SEGMENT)';
       DBMS_OUTPUT.PUT_LINE(v_sql);
       EXECUTE IMMEDIATE v_sql;
       DBMS_OUTPUT.PUT_LINE('Took: '||(DBMS_UTILITY.GET_TIME-v_t)/100||' sec.'); v_t := DBMS_UTILITY.GET_TIME;

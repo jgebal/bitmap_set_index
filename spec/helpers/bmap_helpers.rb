@@ -106,9 +106,12 @@ RSpec.shared_context 'shared bitmap builder' do
     SQL
 
     plsql.execute <<-SQL
-      CREATE OR REPLACE FUNCTION select_and_decode_bmap( p_bitmap_key INTEGER  ) RETURN INT_LIST IS
+      CREATE OR REPLACE PROCEDURE encode_and_insert_segment( p_table_name VARCHAR2, p_bitmap_key INTEGER, p_segment_V_pos INTEGER, p_segment_H_pos INTEGER, p_bit_numbers_list INT_LIST  ) IS
       BEGIN
-        RETURN to_int_list(bmap_segment_builder.decode_bmap_segment( bmap_persist.getBitmapLst(  p_bitmap_key ) ));
+        bmap_persist.insert_segment(
+          p_table_name, p_bitmap_key, p_segment_V_pos, p_segment_H_pos,
+          bmap_segment_builder.encode_and_convert( to_bin_int_list(p_bit_numbers_list) )
+        );
       END;
     SQL
 
@@ -125,7 +128,7 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute('DROP FUNCTION encode_bitminus_test')
     plsql.execute('DROP FUNCTION encode_and_insert_bmap')
     plsql.execute('DROP FUNCTION encode_and_update_bmap')
-    plsql.execute('DROP FUNCTION select_and_decode_bmap')
+    plsql.execute('DROP FUNCTION encode_and_insert_segment')
   end
 
   def encode_and_decode_bmap(bit_number_list)
@@ -160,8 +163,8 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.encode_and_set_bmap(key_id, bit_number_list)
   end
 
-  def select_and_decode_bmap(bitmap_key)
-    plsql.select_and_decode_bmap(bitmap_key)
+  def encode_and_insert_segment(table_name, bitmap_key, bitmap_segment_h_pos, bitmap_segment_v_pos, bit_number_list)
+    plsql.encode_and_insert_segment(table_name, bitmap_key, bitmap_segment_h_pos, bitmap_segment_v_pos, bit_number_list)
   end
 
 end
