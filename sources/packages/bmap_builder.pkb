@@ -88,7 +88,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_builder AS
       END IF;
       --add segment element to segment elements list
       p_segment_int_list( p_current_segment_V_pos ).EXTEND;
-      p_segment_int_list( p_current_segment_V_pos )( p_segment_int_list( p_current_segment_V_pos ).LAST ) := MOD( p_bit_pos, C_SEGMENT_CAPACITY );
+      p_segment_int_list( p_current_segment_V_pos )( p_segment_int_list( p_current_segment_V_pos ).LAST ) := MOD( p_bit_pos-1, C_SEGMENT_CAPACITY )+1;
       p_processing_segm_H_pos_lst( p_current_segment_V_pos ) := v_new_segment_H_pos;
 
     END build_or_store_bmap_segment;
