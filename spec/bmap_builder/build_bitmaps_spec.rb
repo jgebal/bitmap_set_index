@@ -48,7 +48,7 @@ describe 'Build and store bitmap index' do
     bitmap_key = 1
     bit_list = (1..54000).to_a
     two_bit_segment = [
-        [{node_index: 1, node_value: 2}],
+        [{node_index: 1, node_value: 2**0 + 2**1}],
         [{node_index: 1, node_value: 1}],
         [{node_index: 1, node_value: 1}]
     ]
