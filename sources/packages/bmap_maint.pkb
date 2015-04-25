@@ -16,6 +16,19 @@ CREATE OR REPLACE PACKAGE BODY bmap_maint AS
   );
   TYPE t_bmap_cursor IS REF CURSOR RETURN c_bmap_crsr%ROWTYPE;
 
+  PROCEDURE create_index_storage_table(p_table_name VARCHAR2) IS
+    v_sql  VARCHAR2(32767);
+    BEGIN
+      v_sql :=
+      'CREATE TABLE '||p_table_name||'(
+            BMAP_KEY      NUMBER(6,0),
+            SEGMENT_V_POS INTEGER,
+            SEGMENT_H_POS INTEGER,
+            SEGMENT_BMAP  ANYDATA)';
+      DBMS_OUTPUT.PUT_LINE(v_sql);
+      EXECUTE IMMEDIATE v_sql;
+    END create_index_storage_table;
+
   PROCEDURE create_index
   IS
     v_crsr SYS_REFCURSOR;
@@ -50,14 +63,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_maint AS
       EXECUTE IMMEDIATE v_sql;
       DBMS_OUTPUT.PUT_LINE('Took: '||(DBMS_UTILITY.GET_TIME-v_t)/100||' sec.'); v_t := DBMS_UTILITY.GET_TIME;
 
-      v_sql :=
-        'CREATE TABLE '||C_SOURCE_TABLE||C_BITMAP_STORAGE_TAB_SUFFIX||'(
-            BITMAP_KEY NUMBER(6,0),
-            BMAP_V_POS INTEGER,
-            BMAP_H_POS INTEGER,
-            BMAP       STOR_BMAP_SEGMENT)';
-      DBMS_OUTPUT.PUT_LINE(v_sql);
-      EXECUTE IMMEDIATE v_sql;
+      create_index_storage_table( C_SOURCE_TABLE||C_BITMAP_STORAGE_TAB_SUFFIX );
       DBMS_OUTPUT.PUT_LINE('Took: '||(DBMS_UTILITY.GET_TIME-v_t)/100||' sec.'); v_t := DBMS_UTILITY.GET_TIME;
 
       v_sql :=

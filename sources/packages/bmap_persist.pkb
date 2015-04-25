@@ -35,15 +35,15 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     v_crsr SYS_REFCURSOR;
     BEGIN
       OPEN v_crsr FOR
-      'SELECT t_left.bmap left_bmap, t_right.bmap right_bmap, bmap_h_pos
+      'SELECT t_left.segment_bmap left_bmap, t_right.segment_bmap right_bmap, segment_h_pos
          FROM '||p_stor_table_name||' t_left
-         JOIN '||p_stor_table_name||' t_right USING (bmap_h_pos, bmap_v_pos)
-        WHERE t_left.bitmap_key = :p_left_bitmap_key
-          AND t_right.bitmap_key = :p_right_bitmap_key'||
+         JOIN '||p_stor_table_name||' t_right USING (segment_h_pos, segment_v_pos)
+        WHERE t_left.bmap_key = :p_left_bitmap_key
+          AND t_right.bmap_key = :p_right_bitmap_key'||
       CASE WHEN int_list_to_csv(p_segment_H_pos_lst) IS NOT NULL
         THEN '
-           AND bmap_h_pos IN ('||int_list_to_csv(p_segment_H_pos_lst)||')' END || '
-           AND bmap_v_pos = :segment_V_pos'
+           AND segment_h_pos IN ('||int_list_to_csv(p_segment_H_pos_lst)||')' END || '
+           AND segment_v_pos = :segment_V_pos'
       USING p_left_bitmap_key, p_right_bitmap_key, p_segment_V_pos;
       RETURN v_crsr;
     END get_segment_pairs_cursor;
@@ -55,16 +55,18 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     p_segment_V_pos    INTEGER
   ) RETURN STOR_BMAP_SEGMENT IS
     v_segment STOR_BMAP_SEGMENT;
+    v_bmap_anydata ANYDATA;
     BEGIN
       EXECUTE IMMEDIATE
-      'SELECT t_left.bmap left_bmap, t_right.bmap right_bmap, bmap_h_pos
-       FROM '||p_stor_table_name||' t_left
-         JOIN '||p_stor_table_name||' t_right USING (bmap_h_pos, bmap_v_pos)
-        WHERE t_left.bitmap_key = :p_left_bitmap_key
-          AND t_right.bitmap_key = :p_right_bitmap_key
-           AND bmap_h_pos = :segment_H_pos
-           AND bmap_v_pos = :segment_V_pos'
-      INTO v_segment USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos;
+      'SELECT segment_bmap
+       FROM '||p_stor_table_name||'
+        WHERE bmap_key = :bitmap_key
+           AND segment_h_pos = :segment_H_pos
+           AND segment_v_pos = :segment_V_pos'
+      INTO v_bmap_anydata USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos;
+      IF v_bmap_anydata.GetCollection( v_segment ) != DBMS_TYPES.SUCCESS THEN
+        raise_application_error(-20000, 'Unable to fetch data from segment');
+      END IF;
       RETURN v_segment;
     END get_segment;
 
@@ -75,13 +77,15 @@ CREATE OR REPLACE PACKAGE BODY bmap_persist AS
     p_segment_H_pos INTEGER,
     p_segment       STOR_BMAP_SEGMENT
   ) IS
+    v_bmap_anydata ANYDATA;
   BEGIN
+    v_bmap_anydata := anydata.ConvertCollection(  p_segment );
     EXECUTE IMMEDIATE
      'INSERT
         INTO '||p_stor_table_name||'
-             ( BITMAP_KEY, BMAP_H_POS, BMAP_V_POS, BMAP )
-      VALUES ( :p_bitmap_key, :p_segment_H_pos, :p_segment_V_pos, :v_bmap_varray )'
-    USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos, p_segment;
+             ( bmap_key, segment_h_pos, segment_v_pos, segment_bmap  )
+      VALUES ( :p_bitmap_key, :p_segment_H_pos, :p_segment_V_pos, :v_bmap_anydata )'
+    USING p_bitmap_key, p_segment_H_pos, p_segment_V_pos, v_bmap_anydata;
   END insert_segment;
 
 END bmap_persist;

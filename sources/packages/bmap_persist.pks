@@ -17,7 +17,7 @@ CREATE OR REPLACE PACKAGE bmap_persist AUTHID CURRENT_USER AS
 
   FUNCTION get_segment(
     p_stor_table_name  VARCHAR2,
-    p_bitmap_key  NUMBER,
+    p_bitmap_key       NUMBER,
     p_segment_H_pos    INTEGER,
     p_segment_V_pos    INTEGER
   ) RETURN STOR_BMAP_SEGMENT;

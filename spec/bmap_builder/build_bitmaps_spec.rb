@@ -5,28 +5,6 @@ describe 'Build and store bitmap index' do
 
   include_context 'shared bitmap storage'
 
-  def get_segment(table_name, key, h_pos, v_pos)
-    sql = <<-SQL
-    SELECT bmap FROM #{table_name}
-     WHERE bitmap_key = :key
-      AND bmap_h_pos = :h_pos
-      AND bmap_v_pos = :v_pos
-    SQL
-    plsql.select_one(sql, key, h_pos, v_pos)
-  end
-
-  def count_segments(table_name, key)
-    sql = <<-SQL
-    SELECT COUNT(1) FROM #{table_name}
-     WHERE bitmap_key = :key
-    SQL
-    plsql.select_one(sql, key)
-  end
-
-  def get_bmap_root_segment(table_name, key)
-    get_segment(table_name, key, 1, 3)
-  end
-
   def one_bit_bitmap_segment
     [
         [{node_index: 1, node_value:1}],

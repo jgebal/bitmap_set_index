@@ -18,6 +18,8 @@ CREATE OR REPLACE PACKAGE BODY bmap_oper AS
     p_segment_V_pos    INTEGER := C_BITMAP_HEIGHT
   ) RETURN INTEGER IS
     v_crsr SYS_REFCURSOR;
+    v_left_bmap_data    ANYDATA;
+    v_right_bmap_data   ANYDATA;
     v_left_bmap         STOR_BMAP_SEGMENT;
     v_right_bmap        STOR_BMAP_SEGMENT;
     v_common_bits       bmap_segment_builder.BIN_INT_LIST;
@@ -26,8 +28,14 @@ CREATE OR REPLACE PACKAGE BODY bmap_oper AS
     BEGIN
       v_crsr := bmap_persist.get_segment_pairs_cursor(p_stor_table_name, p_left_bitmap_key, p_right_bitmap_key, p_segment_H_pos_lst,p_segment_V_pos);
       LOOP
-        FETCH v_crsr INTO v_left_bmap, v_right_bmap, v_segment_H_pos;
+        FETCH v_crsr INTO v_left_bmap_data, v_right_bmap_data, v_segment_H_pos;
         EXIT WHEN v_crsr%NOTFOUND;
+        IF v_left_bmap_data.GetCollection( v_left_bmap ) != DBMS_TYPES.SUCCESS THEN
+          raise_application_error(-20000, 'Unable to fetch data from segment');
+        END IF;
+        IF v_right_bmap_data.GetCollection( v_right_bmap ) != DBMS_TYPES.SUCCESS THEN
+          raise_application_error(-20000, 'Unable to fetch data from segment');
+        END IF;
         v_common_bits := bmap_segment_builder.decode_bmap_segment( bmap_segment_builder.segment_bit_and( v_left_bmap, v_right_bmap ) );
         IF p_segment_V_pos = 1 THEN
           v_common_rows_count := v_common_rows_count + v_common_bits.COUNT;

@@ -1,5 +1,21 @@
 RSpec.shared_context 'shared bitmap storage' do
 
+  def get_segment(table_name, key, h_pos, v_pos)
+    plsql.bmap_persist.get_segment(table_name, key, h_pos, v_pos)
+  end
+
+  def count_segments(table_name, key)
+    sql = <<-SQL
+    SELECT COUNT(1) FROM #{table_name}
+     WHERE bmap_key = :key
+    SQL
+    plsql.select_one(sql, key)
+  end
+
+  def get_bmap_root_segment(table_name, key)
+    get_segment(table_name, key, 1, 3)
+  end
+
   def storage_table_name
     @p_stor_table_name = 'test_bitmap_segments'
   end
@@ -9,13 +25,7 @@ RSpec.shared_context 'shared bitmap storage' do
   end
 
   before(:all) do
-    storage_table_name
-    plsql.execute "CREATE TABLE  #{storage_table_name}(
-            BITMAP_KEY NUMBER(6,0),
-            BMAP_V_POS INTEGER,
-            BMAP_H_POS INTEGER,
-            BMAP       STOR_BMAP_SEGMENT)"
-
+    plsql.bmap_maint.create_index_storage_table( storage_table_name )
     plsql.execute <<-SQL
       CREATE PROCEDURE build_bitmap( p_table_name VARCHAR2, p_bitmap_key INTEGER, p_bit_numbers_list INT_LIST ) IS
         v_crsr SYS_REFCURSOR;
