@@ -1,12 +1,13 @@
 CREATE OR REPLACE PACKAGE BODY bmap_oper AS
 
   C_BITMAP_HEIGHT    CONSTANT BINARY_INTEGER := bmap_builder.C_BITMAP_HEIGHT;
+  GV_EMPTY_BIN_INT_LIST bmap_segment_builder.BIN_INT_LIST;
 
   FUNCTION bit_and_segments_level_count(
     p_stor_table_name  VARCHAR2,
     p_left_bitmap_key  NUMBER,
     p_right_bitmap_key NUMBER,
-    p_segment_H_pos_lst bmap_segment_builder.BIN_INT_LIST DEFAULT NULL,
+    p_segment_H_pos_lst bmap_segment_builder.BIN_INT_LIST DEFAULT GV_EMPTY_BIN_INT_LIST,
     p_segment_V_pos    INTEGER := C_BITMAP_HEIGHT
   ) RETURN INTEGER;
 
@@ -14,7 +15,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_oper AS
     p_stor_table_name  VARCHAR2,
     p_left_bitmap_key  NUMBER,
     p_right_bitmap_key NUMBER,
-    p_segment_H_pos_lst bmap_segment_builder.BIN_INT_LIST DEFAULT NULL,
+    p_segment_H_pos_lst bmap_segment_builder.BIN_INT_LIST DEFAULT GV_EMPTY_BIN_INT_LIST,
     p_segment_V_pos    INTEGER := C_BITMAP_HEIGHT
   ) RETURN INTEGER IS
     v_crsr SYS_REFCURSOR;

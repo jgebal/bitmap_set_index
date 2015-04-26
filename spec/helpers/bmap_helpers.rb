@@ -6,11 +6,11 @@ RSpec.shared_context 'shared bitmap builder' do
     @max_bit_number = plsql.bmap_segment_builder.C_SEGMENT_CAPACITY
     plsql.execute <<-SQL
       CREATE OR REPLACE FUNCTION to_bin_int_list(p_bit_numbers_list INT_LIST) RETURN bmap_segment_builder.BIN_INT_LIST IS
-        result bmap_segment_builder.BIN_INT_LIST := bmap_segment_builder.BIN_INT_LIST();
+        result bmap_segment_builder.BIN_INT_LIST;
       BEGIN
-        IF p_bit_numbers_list IS NULL THEN RETURN NULL; END IF;
-        FOR i IN 1 .. CARDINALITY(p_bit_numbers_list) LOOP
-          result.EXTEND; result(result.LAST) := p_bit_numbers_list(i);
+        IF p_bit_numbers_list IS NULL THEN RETURN result; END IF;
+        FOR i IN 1 .. p_bit_numbers_list.COUNT LOOP
+          result(i) := p_bit_numbers_list(i);
         END LOOP;
         RETURN result;
       END;
@@ -19,7 +19,7 @@ RSpec.shared_context 'shared bitmap builder' do
       CREATE OR REPLACE FUNCTION to_int_list(p_bit_numbers_list bmap_segment_builder.BIN_INT_LIST) RETURN INT_LIST IS
         result INT_LIST := INT_LIST();
       BEGIN
-        FOR i IN 1 .. CARDINALITY(p_bit_numbers_list) LOOP
+        FOR i IN 1 .. p_bit_numbers_list.COUNT LOOP
           result.EXTEND; result(result.LAST) := p_bit_numbers_list(i);
         END LOOP;
         RETURN result;
