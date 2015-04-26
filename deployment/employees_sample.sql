@@ -1,3 +1,5 @@
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE employees'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
 --------------------------------------------------------
 --  DDL for Table EMPLOYEES
 --------------------------------------------------------
