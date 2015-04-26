@@ -20,3 +20,5 @@ DEF SEGMENT_ELEMS__DEF_VAL_IS_900=900;
 @@../sources/packages/bmap_persist.pkb
 @@../sources/packages/bmap_maint.pkb
 @@../sources/packages/bmap_oper.pkb
+
+EXIT
