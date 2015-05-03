@@ -128,7 +128,8 @@ RSpec.shared_context 'shared bitmap builder' do
     plsql.execute('DROP FUNCTION encode_bitminus_test')
     plsql.execute('DROP FUNCTION encode_and_insert_bmap')
     plsql.execute('DROP FUNCTION encode_and_update_bmap')
-    plsql.execute('DROP FUNCTION encode_and_insert_segment')
+    plsql.execute('DROP FUNCTION encode_and_set_bmap')
+    plsql.execute('DROP PROCEDURE encode_and_insert_segment')
   end
 
   def encode_and_decode_bmap(bit_number_list)
