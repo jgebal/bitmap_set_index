@@ -10,7 +10,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
   gc_bit_values_in_byte    CONSTANT BIN_INT_LIST_LIST := init_bit_values_in_byte();
 
   PROCEDURE init_if_needed( p_int_matrix IN OUT NOCOPY BMAP_SEGMENT ) IS
-    c_height BINARY_INTEGER := C_SEGMENT_HEIGHT;
+    c_height SIMPLE_INTEGER := C_SEGMENT_HEIGHT;
     x BMAP_SEGMENT_LEVEL;
     BEGIN
       IF p_int_matrix IS NULL OR p_int_matrix.COUNT = 0 THEN
@@ -21,19 +21,19 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     END init_if_needed;
 
   FUNCTION bitor(
-    p_left IN BINARY_INTEGER,
-    p_right IN BINARY_INTEGER
-  ) RETURN BINARY_INTEGER DETERMINISTIC IS
+    p_left IN SIMPLE_INTEGER,
+    p_right IN SIMPLE_INTEGER
+  ) RETURN SIMPLE_INTEGER DETERMINISTIC IS
     BEGIN
       RETURN p_left + (p_right - BITAND(p_left, p_right));
     END bitor;
 
   PROCEDURE set_bit_in_element(
     p_bitmap_tree_level  IN OUT NOCOPY BMAP_SEGMENT_LEVEL,
-    p_bit_number                       BINARY_INTEGER
+    p_bit_number                       SIMPLE_INTEGER
   ) IS
-    v_bit_number_in_segment BINARY_INTEGER := 0;
-    v_segment_number        BINARY_INTEGER := 0;
+    v_bit_number_in_segment SIMPLE_INTEGER := 0;
+    v_segment_number        SIMPLE_INTEGER := 0;
     BEGIN
       v_bit_number_in_segment := MOD( p_bit_number - 1, C_ELEMENT_CAPACITY );
       v_segment_number := CEIL( p_bit_number / C_ELEMENT_CAPACITY );
@@ -49,29 +49,27 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     p_bmap_segment_level IN OUT NOCOPY BMAP_SEGMENT_LEVEL,
     p_bit_numbers_set    BIN_INT_LIST
   ) IS
-    v_bit_number_idx BINARY_INTEGER;
+    v_bit_number_idx SIMPLE_INTEGER := p_bit_numbers_set.FIRST;
     BEGIN
-      v_bit_number_idx := p_bit_numbers_set.FIRST;
       LOOP
-        EXIT WHEN v_bit_number_idx IS NULL;
+        EXIT WHEN v_bit_number_idx = 0;
         PRAGMA INLINE(set_bit_in_element,'YES');
         set_bit_in_element( p_bmap_segment_level, p_bit_numbers_set( v_bit_number_idx ) );
-        v_bit_number_idx := p_bit_numbers_set.NEXT( v_bit_number_idx );
+        v_bit_number_idx := COALESCE( p_bit_numbers_set.NEXT( v_bit_number_idx ), 0 );
       END LOOP;
     END encode_leaf_segment_level;
 
   PROCEDURE encode_segment_level(
     p_bmap_segment          IN OUT NOCOPY BMAP_SEGMENT,
-    p_bmap_segment_level_no BINARY_INTEGER
+    p_bmap_segment_level_no SIMPLE_INTEGER
   ) IS
-    v_node BINARY_INTEGER;
+    v_node SIMPLE_INTEGER := p_bmap_segment( p_bmap_segment_level_no - 1 ).FIRST;
     BEGIN
-      v_node := p_bmap_segment( p_bmap_segment_level_no - 1 ).FIRST;
       LOOP
-        EXIT WHEN v_node IS NULL;
+        EXIT WHEN v_node = 0 ;
         PRAGMA INLINE(set_bit_in_element,'YES');
         set_bit_in_element( p_bmap_segment( p_bmap_segment_level_no ), v_node );
-        v_node := p_bmap_segment( p_bmap_segment_level_no - 1 ).NEXT( v_node );
+        v_node := COALESCE( p_bmap_segment( p_bmap_segment_level_no - 1 ).NEXT( v_node ), 0 );
       END LOOP;
     END encode_segment_level;
 
@@ -105,21 +103,24 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
 
 
   PROCEDURE decode_bmap_element(
-    p_element_value   BINARY_INTEGER,
+    p_element_value   SIMPLE_INTEGER,
     p_bit_number_list IN OUT NOCOPY BIN_INT_LIST,
-    p_bit_pos_offset  BINARY_INTEGER DEFAULT 0
+    p_bit_pos_offset  SIMPLE_INTEGER DEFAULT 0
   ) IS
-    v_remaining_value     BINARY_INTEGER;
-    v_bit_pos             BINARY_INTEGER := p_bit_pos_offset;
-    v_byte_values_idx     BINARY_INTEGER;
+    v_remaining_value     SIMPLE_INTEGER := p_element_value;
+    v_bit_pos             SIMPLE_INTEGER := p_bit_pos_offset;
+    v_byte_values_idx     SIMPLE_INTEGER := 0;
+    v_loops               SIMPLE_INTEGER := 0;
+    bit_number_count      SIMPLE_INTEGER := p_bit_number_list.COUNT;
     BEGIN
-      v_remaining_value := p_element_value;
       WHILE v_remaining_value != 0 LOOP
         v_byte_values_idx :=   MOD( v_remaining_value, 32768 );
         v_remaining_value := FLOOR( v_remaining_value / 32768 );
         IF v_byte_values_idx > 0 THEN
-          FOR i IN 1 .. gc_bit_values_in_byte( v_byte_values_idx ).COUNT LOOP
-            p_bit_number_list( p_bit_number_list.COUNT + 1 ) := gc_bit_values_in_byte( v_byte_values_idx )( i ) + v_bit_pos;
+          v_loops := gc_bit_values_in_byte( v_byte_values_idx ).COUNT;
+          FOR i IN 1 .. v_loops LOOP
+            bit_number_count := bit_number_count + 1;
+            p_bit_number_list( bit_number_count ) := gc_bit_values_in_byte( v_byte_values_idx )( i ) + v_bit_pos;
           END LOOP;
         END IF;
         v_bit_pos := v_bit_pos + 15;
@@ -130,16 +131,15 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     p_bmap_element_list BMAP_SEGMENT_LEVEL
   ) RETURN BIN_INT_LIST IS
     v_bit_numbers_list BIN_INT_LIST;
-    v_element_position BINARY_INTEGER;
-    v_bit_pos_offset   BINARY_INTEGER;
+    v_element_position SIMPLE_INTEGER := p_bmap_element_list.FIRST;
+    v_bit_pos_offset   SIMPLE_INTEGER := 0;
     BEGIN
-      v_element_position := p_bmap_element_list.FIRST;
       LOOP
-        EXIT WHEN v_element_position IS NULL;
+        EXIT WHEN v_element_position = 0;
         v_bit_pos_offset := C_ELEMENT_CAPACITY * ( v_element_position - 1 );
 
         decode_bmap_element( p_bmap_element_list( v_element_position ), v_bit_numbers_list, v_bit_pos_offset );
-        v_element_position := p_bmap_element_list.NEXT( v_element_position );
+        v_element_position := COALESCE( p_bmap_element_list.NEXT( v_element_position ), 0 );
       END LOOP;
       RETURN v_bit_numbers_list;
     END decode_bmap_segment_level;
@@ -159,14 +159,13 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
   PROCEDURE segment_level_bit_and(
     p_bmap_left                 BMAP_SEGMENT,
     p_bmap_right                BMAP_SEGMENT,
-    p_level                     BINARY_INTEGER,
-    p_node                      BINARY_INTEGER,
+    p_level                     SIMPLE_INTEGER,
+    p_node                      SIMPLE_INTEGER,
     p_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   ) IS
-    v_node_value      BINARY_INTEGER;
+    v_node_value      SIMPLE_INTEGER := BITAND( p_bmap_left( p_level )( p_node ), p_bmap_right( p_level )( p_node ) );
     v_child_node_list BIN_INT_LIST;
     BEGIN
-      v_node_value := BITAND( p_bmap_left( p_level )( p_node ), p_bmap_right( p_level )( p_node ) );
       IF v_node_value > 0 THEN
         p_bmap_result( p_level )( p_node ) := v_node_value;
         IF p_level - 1 > 0 THEN
@@ -187,11 +186,11 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
   PROCEDURE segment_level_bit_or(
     p_bmap_left                 BMAP_SEGMENT,
     p_bmap_right                BMAP_SEGMENT,
-    p_level                     BINARY_INTEGER,
-    p_node                      BINARY_INTEGER,
+    p_level                     SIMPLE_INTEGER,
+    p_node                      SIMPLE_INTEGER,
     p_bmap_result IN OUT NOCOPY BMAP_SEGMENT
   ) IS
-    v_node_value      BINARY_INTEGER;
+    v_node_value      SIMPLE_INTEGER := 0;
     v_child_node_list BIN_INT_LIST;
     BEGIN
       IF NOT p_bmap_left( p_level ).EXISTS( p_node ) THEN
@@ -222,14 +221,12 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
   PROCEDURE segment_level_bit_minus(
     p_bmap_left   IN OUT NOCOPY BMAP_SEGMENT,
     p_bmap_right                BMAP_SEGMENT,
-    p_level                     BINARY_INTEGER,
-    p_node                      BINARY_INTEGER
+    p_level                     SIMPLE_INTEGER,
+    p_node                      SIMPLE_INTEGER
   ) IS
-    v_node_value      BINARY_INTEGER;
+    v_node_value      SIMPLE_INTEGER := p_bmap_left( p_level )( p_node ) - BITAND( p_bmap_left( p_level )( p_node ), p_bmap_right( p_level )( p_node ) );
     v_child_node_list BIN_INT_LIST;
-    i                 BINARY_INTEGER;
     BEGIN
-      v_node_value := p_bmap_left( p_level )( p_node ) - BITAND( p_bmap_left( p_level )( p_node ), p_bmap_right( p_level )( p_node ) );
       IF p_level - 1 > 0 THEN
         decode_bmap_element( p_bmap_left( p_level )( p_node ), v_child_node_list );
         FOR i IN 1 .. v_child_node_list.COUNT LOOP
@@ -342,7 +339,6 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     p_bitmap_list STOR_BMAP_SEGMENT
   ) RETURN BMAP_SEGMENT IS
     v_level_list BMAP_SEGMENT;
-    j            BINARY_INTEGER;
     BEGIN
       IF NOT (p_bitmap_list IS NULL OR p_bitmap_list.COUNT = 0) THEN
         FOR i IN p_bitmap_list.FIRST .. p_bitmap_list.LAST LOOP
@@ -389,7 +385,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     v_high_values_in_byte BIN_INT_LIST_LIST;
     v_top_values_in_byte  BIN_INT_LIST_LIST;
     v_result              BIN_INT_LIST_LIST;
-    idx                   BINARY_INTEGER;
+    idx                   SIMPLE_INTEGER := 0;
     FUNCTION get_bmap_node_list(p_lst INT_LIST) RETURN BIN_INT_LIST IS
       v_res BIN_INT_LIST;
       BEGIN
@@ -400,22 +396,21 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
       END get_bmap_node_list;
     FUNCTION multiset_union_all(p_left BIN_INT_LIST, p_right BIN_INT_LIST) RETURN BIN_INT_LIST IS
       v_res BIN_INT_LIST;
-      i BINARY_INTEGER;
-      j BINARY_INTEGER := 0;
+      i SIMPLE_INTEGER := COALESCE( p_left.FIRST, 0 );
+      j SIMPLE_INTEGER := 0;
       BEGIN
-        i := p_left.FIRST;
         LOOP
-          EXIT WHEN i IS NULL;
+          EXIT WHEN i = 0;
           j := j + 1;
           v_res(j) := p_left(i);
-          i := p_left.NEXT(i);
+          i := COALESCE( p_left.NEXT(i), 0 );
         END LOOP;
-        i := p_right.FIRST;
+        i := COALESCE( p_right.FIRST, 0 );
         LOOP
-          EXIT WHEN i IS NULL;
+          EXIT WHEN i = 0;
           j := j + 1;
           v_res(j) := p_right(i);
-          i := p_right.NEXT(i);
+          i := COALESCE( p_right.NEXT(i), 0 );
         END LOOP;
         RETURN v_res;
       END multiset_union_all;
