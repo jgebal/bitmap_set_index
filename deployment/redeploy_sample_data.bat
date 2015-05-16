@@ -1,1 +1,1 @@
-sqlplus usr/usr@xe @redeploy_sample_data
+sqlplus usr/usr@orcl @redeploy_sample_data

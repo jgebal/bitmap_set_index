@@ -1,1 +1,1 @@
-sqlplus usr/usr@xe @fallback_all
+sqlplus usr/usr@orcl @fallback_all

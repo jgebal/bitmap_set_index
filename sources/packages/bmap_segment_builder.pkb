@@ -131,7 +131,7 @@ CREATE OR REPLACE PACKAGE BODY bmap_segment_builder AS
     p_bmap_element_list BMAP_SEGMENT_LEVEL
   ) RETURN BIN_INT_LIST IS
     v_bit_numbers_list BIN_INT_LIST;
-    v_element_position SIMPLE_INTEGER := p_bmap_element_list.FIRST;
+    v_element_position SIMPLE_INTEGER := COALESCE(p_bmap_element_list.FIRST, 0);
     v_bit_pos_offset   SIMPLE_INTEGER := 0;
     BEGIN
       LOOP

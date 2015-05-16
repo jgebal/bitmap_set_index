@@ -1,1 +1,1 @@
-sqlplus usr/usr@xe @deploy_all
+sqlplus usr/usr@orcl @deploy_all

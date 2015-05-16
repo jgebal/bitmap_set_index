@@ -3,7 +3,7 @@
 default:
   username: usr
   password: usr
-  database: xe
+  database: orcl
   host: localhost
   port: 1521
 
